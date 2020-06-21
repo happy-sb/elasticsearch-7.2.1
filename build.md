@@ -14,3 +14,7 @@
 ```
 
 * [x] include dependencies with `Provided` scope
+
+## run
+
+> org.elasticsearch.bootstrap.Elasticsearch

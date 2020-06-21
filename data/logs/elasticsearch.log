@@ -411,3 +411,59 @@ Caused by: java.lang.ClassNotFoundException: org.elasticsearch.plugins.ExtendedP
 [2020-06-21T11:53:46,024][INFO ][o.e.x.i.a.TransportPutLifecycleAction] [node-1] adding index lifecycle policy [watch-history-ilm-policy]
 [2020-06-21T12:00:15,523][INFO ][o.e.c.m.MetaDataCreateIndexService] [node-1] [twitter] creating index, cause [auto(bulk api)], templates [], shards [1]/[1], mappings []
 [2020-06-21T12:00:15,969][INFO ][o.e.c.m.MetaDataMappingService] [node-1] [twitter/Kf7JdzChQPyz8YbbOt0CCg] create_mapping [_doc]
+[2020-06-21T19:23:32,109][WARN ][o.e.c.l.LogConfigurator  ] [node-1] Some logging configurations have %marker but don't have %node_name. We will automatically add %node_name to the pattern to ease the migration for users who customize log4j2.properties but will stop this behavior in 7.0. You should manually replace `%node_name` with `[%node_name]%marker ` in these locations:
+  D:\github\java\elasticsearch-7.2.1\config\log4j2.properties
+[2020-06-21T19:23:33,484][INFO ][o.e.e.NodeEnvironment    ] [node-1] using [1] data paths, mounts [[ДњТы (D:)]], net usable_space [3.5gb], net total_space [9.9gb], types [NTFS]
+[2020-06-21T19:23:33,485][INFO ][o.e.e.NodeEnvironment    ] [node-1] heap size [3.7gb], compressed ordinary object pointers [true]
+[2020-06-21T19:23:33,497][INFO ][o.e.n.Node               ] [node-1] node name [node-1], node ID [E88oRrJFTdSODmyZgyoXjQ], cluster name [elasticsearch]
+[2020-06-21T19:23:33,498][INFO ][o.e.n.Node               ] [node-1] version[7.2.1], pid[2888], build[unknown/unknown/Unknown/Unknown], OS[Windows 10/10.0/amd64], JVM[Oracle Corporation/Java HotSpot(TM) 64-Bit Server VM/12.0.2/12.0.2+10]
+[2020-06-21T19:23:33,498][INFO ][o.e.n.Node               ] [node-1] JVM home [E:\Java\jdk12]
+[2020-06-21T19:23:33,498][INFO ][o.e.n.Node               ] [node-1] JVM arguments [-Des.path.conf=D:\github\java\elasticsearch-7.2.1\config, -Des.path.home=D:\github\java\elasticsearch-7.2.1\data, -Djava.security.policy=D:\github\java\elasticsearch-7.2.1\config\java.policy, -Dlog4j2.disable.jmx=true, -Dfile.encoding=GBK, -Duser.country=CN, -Duser.language=zh, -Duser.variant]
+[2020-06-21T19:23:42,680][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [aggs-matrix-stats]
+[2020-06-21T19:23:42,680][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [analysis-common]
+[2020-06-21T19:23:42,680][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [data-frame]
+[2020-06-21T19:23:42,681][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [ingest-common]
+[2020-06-21T19:23:42,681][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [ingest-geoip]
+[2020-06-21T19:23:42,681][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [ingest-user-agent]
+[2020-06-21T19:23:42,681][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [lang-expression]
+[2020-06-21T19:23:42,681][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [lang-mustache]
+[2020-06-21T19:23:42,681][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [lang-painless]
+[2020-06-21T19:23:42,681][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [mapper-extras]
+[2020-06-21T19:23:42,682][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [parent-join]
+[2020-06-21T19:23:42,682][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [percolator]
+[2020-06-21T19:23:42,682][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [rank-eval]
+[2020-06-21T19:23:42,682][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [reindex]
+[2020-06-21T19:23:42,682][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [repository-url]
+[2020-06-21T19:23:42,682][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [transport-netty4]
+[2020-06-21T19:23:42,682][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [x-pack-ccr]
+[2020-06-21T19:23:42,682][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [x-pack-core]
+[2020-06-21T19:23:42,683][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [x-pack-deprecation]
+[2020-06-21T19:23:42,683][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [x-pack-graph]
+[2020-06-21T19:23:42,683][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [x-pack-ilm]
+[2020-06-21T19:23:42,683][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [x-pack-logstash]
+[2020-06-21T19:23:42,683][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [x-pack-ml]
+[2020-06-21T19:23:42,683][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [x-pack-monitoring]
+[2020-06-21T19:23:42,683][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [x-pack-rollup]
+[2020-06-21T19:23:42,683][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [x-pack-security]
+[2020-06-21T19:23:42,684][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [x-pack-sql]
+[2020-06-21T19:23:42,684][INFO ][o.e.p.PluginsService     ] [node-1] loaded module [x-pack-watcher]
+[2020-06-21T19:23:42,685][INFO ][o.e.p.PluginsService     ] [node-1] no plugins loaded
+[2020-06-21T19:23:44,262][INFO ][i.n.u.i.PlatformDependent] [node-1] Your platform does not provide complete low-level API for accessing direct buffers reliably. Unless explicitly requested, heap buffer will always be preferred to avoid potential system instability.
+[2020-06-21T19:23:49,650][INFO ][o.e.x.m.p.l.CppLogMessageHandler] [node-1] [controller/1252] [Main.cc@110] controller (64 bit): Version 7.2.1 (Build 4ad685337be7fd) Copyright (c) 2019 Elasticsearch BV
+[2020-06-21T19:23:50,334][DEBUG][o.e.a.ActionModule       ] [node-1] Using REST wrapper from plugin org.elasticsearch.xpack.security.Security
+[2020-06-21T19:23:50,378][INFO ][i.n.u.i.PlatformDependent] [node-1] Your platform does not provide complete low-level API for accessing direct buffers reliably. Unless explicitly requested, heap buffer will always be preferred to avoid potential system instability.
+[2020-06-21T19:23:50,736][INFO ][o.e.d.DiscoveryModule    ] [node-1] using discovery type [zen] and seed hosts providers [settings]
+[2020-06-21T19:23:51,744][INFO ][o.e.n.Node               ] [node-1] initialized
+[2020-06-21T19:23:51,744][INFO ][o.e.n.Node               ] [node-1] starting ...
+[2020-06-21T19:23:53,097][INFO ][o.e.t.TransportService   ] [node-1] publish_address {127.0.0.1:9300}, bound_addresses {127.0.0.1:9300}, {[::1]:9300}
+[2020-06-21T19:23:53,122][WARN ][o.e.b.BootstrapChecks    ] [node-1] initial heap size [251658240] not equal to maximum heap size [4013948928]; this can cause resize pauses and prevents mlockall from locking the entire heap
+[2020-06-21T19:23:53,122][WARN ][o.e.b.BootstrapChecks    ] [node-1] the default discovery settings are unsuitable for production use; at least one of [discovery.seed_hosts, discovery.seed_providers, cluster.initial_master_nodes] must be configured
+[2020-06-21T19:23:53,127][INFO ][o.e.c.c.Coordinator      ] [node-1] cluster UUID [lp24YgHUSBiludikdNuL8A]
+[2020-06-21T19:23:53,138][INFO ][o.e.c.c.ClusterBootstrapService] [node-1] no discovery configuration found, will perform best-effort cluster bootstrapping after [3s] unless existing master is discovered
+[2020-06-21T19:23:53,239][INFO ][o.e.c.s.MasterService    ] [node-1] elected-as-master ([1] nodes joined)[{node-1}{E88oRrJFTdSODmyZgyoXjQ}{92GeW0OISMy568k7ZPdRhw}{127.0.0.1}{127.0.0.1:9300}{ml.machine_memory=16047661056, xpack.installed=true, ml.max_open_jobs=20} elect leader, _BECOME_MASTER_TASK_, _FINISH_ELECTION_], term: 2, version: 19, reason: master node changed {previous [], current [{node-1}{E88oRrJFTdSODmyZgyoXjQ}{92GeW0OISMy568k7ZPdRhw}{127.0.0.1}{127.0.0.1:9300}{ml.machine_memory=16047661056, xpack.installed=true, ml.max_open_jobs=20}]}
+[2020-06-21T19:23:53,295][INFO ][o.e.c.s.ClusterApplierService] [node-1] master node changed {previous [], current [{node-1}{E88oRrJFTdSODmyZgyoXjQ}{92GeW0OISMy568k7ZPdRhw}{127.0.0.1}{127.0.0.1:9300}{ml.machine_memory=16047661056, xpack.installed=true, ml.max_open_jobs=20}]}, term: 2, version: 19, reason: Publication{term=2, version=19}
+[2020-06-21T19:23:53,709][INFO ][o.e.l.LicenseService     ] [node-1] license [fae15ae6-e50a-4ca6-bfb7-5c634b0be3a9] mode [basic] - valid
+[2020-06-21T19:23:53,723][INFO ][o.e.g.GatewayService     ] [node-1] recovered [1] indices into cluster_state
+[2020-06-21T19:23:54,091][INFO ][o.e.c.r.a.AllocationService] [node-1] Cluster health status changed from [RED] to [YELLOW] (reason: [shards started [[twitter][0]] ...]).
+[2020-06-21T19:23:54,111][INFO ][o.e.h.AbstractHttpServerTransport] [node-1] publish_address {127.0.0.1:9200}, bound_addresses {127.0.0.1:9200}, {[::1]:9200}
+[2020-06-21T19:23:54,112][INFO ][o.e.n.Node               ] [node-1] started
