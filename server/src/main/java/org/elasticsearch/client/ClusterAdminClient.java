@@ -114,6 +114,7 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.tasks.TaskId;
 
 /**
+ * 集群管理的Admin客户端
  * Administrative actions/operations against indices.
  *
  * @see AdminClient#cluster()

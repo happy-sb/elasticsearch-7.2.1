@@ -61,6 +61,9 @@ import static org.elasticsearch.rest.RestStatus.NOT_ACCEPTABLE;
 import static org.elasticsearch.rest.RestStatus.OK;
 import static org.elasticsearch.rest.BytesRestResponse.TEXT_CONTENT_TYPE;
 
+/**
+ * 处理Http请求的Controller
+ */
 public class RestController implements HttpServerTransport.Dispatcher {
 
     private static final Logger logger = LogManager.getLogger(RestController.class);
@@ -90,6 +93,7 @@ public class RestController implements HttpServerTransport.Dispatcher {
     }
 
     /**
+     * 注册针对不同的Rest请求处理器
      * Registers a REST handler to be executed when the provided {@code method} and {@code path} match the request.
      *
      * @param method GET, POST, etc.

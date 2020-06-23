@@ -45,6 +45,9 @@ import java.util.concurrent.CopyOnWriteArraySet;
 public class ResourceWatcherService extends AbstractLifecycleComponent {
     private static final Logger logger = LogManager.getLogger(ResourceWatcherService.class);
 
+    /**
+     * 频率, 资源watch频率
+     */
     public enum Frequency {
 
         /**
