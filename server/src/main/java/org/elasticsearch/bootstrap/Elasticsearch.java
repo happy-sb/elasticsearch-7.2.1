@@ -41,6 +41,8 @@ import java.util.Arrays;
 import java.util.Locale;
 
 /**
+ * {@link org.elasticsearch.http.netty4.Netty4HttpRequestHandler} Netty处理Http请求的Handler
+ *
  * This class starts elasticsearch.
  */
 class Elasticsearch extends EnvironmentAwareCommand {
@@ -52,7 +54,8 @@ class Elasticsearch extends EnvironmentAwareCommand {
 
     // visible for testing
     Elasticsearch() {
-        super("starts elasticsearch", () -> {}); // we configure logging later so we override the base class from configuring logging
+        super("starts elasticsearch", () -> {
+        }); // we configure logging later so we override the base class from configuring logging
         versionOption = parser.acceptsAll(Arrays.asList("V", "version"),
             "Prints elasticsearch version information and exits");
         daemonizeOption = parser.acceptsAll(Arrays.asList("d", "daemonize"),
@@ -76,8 +79,10 @@ class Elasticsearch extends EnvironmentAwareCommand {
 
         overrideDnsCachePolicyProperties();
         /*
-         * We want the JVM to think there is a security manager installed so that if internal policy decisions that would be based on the
-         * presence of a security manager or lack thereof act as if there is a security manager present (e.g., DNS cache policy). This
+         * We want the JVM to think there is a security manager installed so that if internal policy decisions that
+         * would be based on the
+         * presence of a security manager or lack thereof act as if there is a security manager present (e.g., DNS
+         * cache policy). This
          * forces such policies to take effect immediately.
          */
         System.setSecurityManager(new SecurityManager() {
@@ -97,7 +102,7 @@ class Elasticsearch extends EnvironmentAwareCommand {
     }
 
     private static void overrideDnsCachePolicyProperties() {
-        for (final String property : new String[] {"networkaddress.cache.ttl", "networkaddress.cache.negative.ttl" }) {
+        for (final String property : new String[] {"networkaddress.cache.ttl", "networkaddress.cache.negative.ttl"}) {
             final String overrideProperty = "es." + property;
             final String overrideValue = System.getProperty(overrideProperty);
             if (overrideValue != null) {
@@ -106,7 +111,7 @@ class Elasticsearch extends EnvironmentAwareCommand {
                     Security.setProperty(property, Integer.toString(Integer.valueOf(overrideValue)));
                 } catch (final NumberFormatException e) {
                     throw new IllegalArgumentException(
-                            "failed to parse [" + overrideProperty + "] with value [" + overrideValue + "]", e);
+                        "failed to parse [" + overrideProperty + "] with value [" + overrideValue + "]", e);
                 }
             }
         }
@@ -119,7 +124,8 @@ class Elasticsearch extends EnvironmentAwareCommand {
     @Override
     protected void execute(Terminal terminal, OptionSet options, Environment env) throws UserException {
         if (options.nonOptionArguments().isEmpty() == false) {
-            throw new UserException(ExitCodes.USAGE, "Positional arguments not allowed, found " + options.nonOptionArguments());
+            throw new UserException(ExitCodes.USAGE,
+                "Positional arguments not allowed, found " + options.nonOptionArguments());
         }
         if (options.has(versionOption)) {
             final String versionOutput = String.format(
@@ -154,6 +160,16 @@ class Elasticsearch extends EnvironmentAwareCommand {
         }
     }
 
+    /**
+     * Elasticsearch初始化
+     *
+     * @param daemonize  是否是后台进程
+     * @param pidFile    是否创建一个pid文件
+     * @param quiet      是否不抛出异常
+     * @param initialEnv
+     * @throws NodeValidationException
+     * @throws UserException
+     */
     void init(final boolean daemonize, final Path pidFile, final boolean quiet, Environment initialEnv)
         throws NodeValidationException, UserException {
         try {

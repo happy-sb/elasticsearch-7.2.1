@@ -35,11 +35,15 @@ import java.util.ArrayDeque;
 import java.util.Queue;
 
 /**
+ * Netty处理消息的Handler
  * A handler (must be the last one!) that does size based frame decoding and forwards the actual message
  * to the relevant action.
  */
 final class Netty4MessageChannelHandler extends ChannelDuplexHandler {
 
+    /**
+     * 处理数据的transport
+     */
     private final Netty4Transport transport;
 
     private final Queue<WriteOperation> queuedWrites = new ArrayDeque<>();
@@ -50,6 +54,13 @@ final class Netty4MessageChannelHandler extends ChannelDuplexHandler {
         this.transport = transport;
     }
 
+    /**
+     * 接收到TCP的消息
+     *
+     * @param ctx
+     * @param msg
+     * @throws Exception
+     */
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         assert Transports.assertTransportThread();
