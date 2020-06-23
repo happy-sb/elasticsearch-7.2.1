@@ -73,6 +73,7 @@ class Elasticsearch extends EnvironmentAwareCommand {
      * Main entry point for starting elasticsearch
      */
     public static void main(final String[] args) throws Exception {
+
         overrideDnsCachePolicyProperties();
         /*
          * We want the JVM to think there is a security manager installed so that if internal policy decisions that would be based on the
