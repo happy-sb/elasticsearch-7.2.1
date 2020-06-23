@@ -29,6 +29,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 
 /**
+ * 文件资源观察者
  * File resources watcher
  *
  * The file watcher checks directory and all its subdirectories for file changes and notifies its listeners accordingly

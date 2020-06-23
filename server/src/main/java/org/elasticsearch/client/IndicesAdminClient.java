@@ -117,6 +117,7 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.Nullable;
 
 /**
+ * 索引管理的客户端
  * Administrative actions/operations against indices.
  *
  * @see AdminClient#indices()

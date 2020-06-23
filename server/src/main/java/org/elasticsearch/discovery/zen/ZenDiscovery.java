@@ -322,6 +322,12 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
         return clusterState;
     }
 
+    /**
+     * 发布所有变更信息给master
+     *
+     * @param clusterChangedEvent
+     * @param ackListener
+     */
     @Override
     public void publish(ClusterChangedEvent clusterChangedEvent, ActionListener<Void> publishListener, AckListener ackListener) {
         ClusterState newState = clusterChangedEvent.state();
