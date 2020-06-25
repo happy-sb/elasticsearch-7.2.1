@@ -72,6 +72,7 @@ import org.elasticsearch.tasks.Task;
 import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
+import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportRequest;
@@ -653,6 +654,7 @@ public abstract class TransportReplicationAction<
         protected void doRun() {
             setPhase(task, "routing");
             final ClusterState state = observer.setAndGetObservedState();
+            // 需要通过index确定分片
             final String concreteIndex = concreteIndex(state, request);
             final ClusterBlockException blockException = blockExceptions(state, concreteIndex);
             if (blockException != null) {
@@ -673,16 +675,21 @@ public abstract class TransportReplicationAction<
                     throw new IndexClosedException(indexMetaData.getIndex());
                 }
 
+                // 重新设置当前请求等待多时个slave shard回复
                 // resolve all derived request fields, so we can route and apply it
                 resolveRequest(indexMetaData, request);
                 assert request.waitForActiveShards() != ActiveShardCount.DEFAULT :
                     "request waitForActiveShards must be set in resolveRequest";
 
+                // 获得可路由的主分片
                 final ShardRouting primary = primary(state);
+                // 如果主分片不可用,重试
                 if (retryIfUnavailable(state, primary)) {
                     return;
                 }
                 final DiscoveryNode node = state.nodes().get(primary.currentNodeId());
+                //下面为执行操作的阶段一，在主分片上执行具体的操作
+                //如果当前节点为主分片所在节点，则本地执行request
                 if (primary.currentNodeId().equals(state.nodes().getLocalNodeId())) {
                     performLocalAction(state, primary, node, indexMetaData);
                 } else {
@@ -691,6 +698,11 @@ public abstract class TransportReplicationAction<
             }
         }
 
+        //performLocalAction和performRemoteAction实现如下，最终都会调用
+        //performAction方法，不过传入的action分别为transportPrimaryAction
+        //（BulkAction.NAME + "[s][p]"）和actionName(BulkAction.NAME + "[s]")，
+        //具体节点会根据此action找到注册到transportService中的请求处理Handler，
+        //除了上面两种action，还有一种是副分片使用的action，即transportReplicaAction（BulkAction.NAME + "[s][r]"）
         private void performLocalAction(ClusterState state, ShardRouting primary, DiscoveryNode node, IndexMetaData indexMetaData) {
             setPhase(task, "waiting_on_primary");
             if (logger.isTraceEnabled()) {
@@ -744,6 +756,15 @@ public abstract class TransportReplicationAction<
             return indexShard.primaryShard();
         }
 
+        /**
+         * 调用 {@link TransportService#sendRequestInternal(Connection, String, TransportRequest, TransportRequestOptions, TransportResponseHandler)}
+         * 当然中间会有interceptor拦截请求
+         *
+         * @param node
+         * @param action
+         * @param isPrimaryAction
+         * @param requestToPerform
+         */
         private void performAction(final DiscoveryNode node, final String action, final boolean isPrimaryAction,
                                    final TransportRequest requestToPerform) {
             transportService.sendRequest(node, action, requestToPerform, transportOptions, new TransportResponseHandler<Response>() {

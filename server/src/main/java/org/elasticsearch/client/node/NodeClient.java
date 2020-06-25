@@ -111,6 +111,7 @@ public class NodeClient extends AbstractClient {
         if (actions == null) {
             throw new IllegalStateException("NodeClient has not been initialized");
         }
+        // 从所有注册的action中获取指定的TransportAction实现类, 比如 TransportBulkAction
         TransportAction<Request, Response> transportAction = actions.get(action);
         if (transportAction == null) {
             throw new IllegalStateException("failed to find action [" + action + "] to execute");

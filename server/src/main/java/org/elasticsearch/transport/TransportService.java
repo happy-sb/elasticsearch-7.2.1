@@ -115,6 +115,10 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
 
     /** if set will call requests sent to this id to shortcut and executed locally */
     volatile DiscoveryNode localNode = null;
+
+    /**
+     * 本地节点连接,若当前分片是主分片会自发自收
+     */
     private final Transport.Connection localNodeConnection = new Transport.Connection() {
         @Override
         public DiscoveryNode getNode() {
@@ -170,6 +174,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         tracerLog = Loggers.getLogger(logger, ".tracer");
         taskManager = createTaskManager(settings, threadPool, taskHeaders);
         this.interceptor = transportInterceptor;
+        // 节点间请求的异步发送者, SecurityServerTransportInterceptor 对其做个拦截,做权限校验(如果有的话)
         this.asyncSender = interceptor.interceptSender(this::sendRequestInternal);
         this.connectToRemoteCluster = RemoteClusterService.ENABLE_REMOTE_CLUSTERS.get(settings);
         remoteClusterService = new RemoteClusterService(settings, this);
@@ -605,6 +610,17 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
 
     }
 
+
+    /**
+     * 当前节点向其他几点发送请求
+     *
+     * @param connection
+     * @param action
+     * @param request
+     * @param options
+     * @param handler
+     * @param <T>
+     */
     private <T extends TransportResponse> void sendRequestInternal(final Transport.Connection connection, final String action,
                                                                    final TransportRequest request,
                                                                    final TransportRequestOptions options,
@@ -682,6 +698,15 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         }
     }
 
+    /**
+     * 发送本地请求,当当前分片是主分片时会调用此方法
+     * {@link org.elasticsearch.action.support.replication.TransportReplicationAction#registerRequestHandlers(String, TransportService, Supplier, Supplier, String)}
+     *
+     * @param requestId
+     * @param action
+     * @param request
+     * @param options
+     */
     private void sendLocalRequest(long requestId, final String action, final TransportRequest request, TransportRequestOptions options) {
         final DirectResponseChannel channel = new DirectResponseChannel(logger, localNode, action, requestId, this, threadPool);
         try {

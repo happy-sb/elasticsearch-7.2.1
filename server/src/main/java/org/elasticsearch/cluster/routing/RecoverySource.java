@@ -86,6 +86,9 @@ public abstract class RecoverySource implements Writeable, ToXContentObject {
     public enum Type {
         EMPTY_STORE,
         EXISTING_STORE,
+        /**
+         * 这种就是Peer to Peer恢复
+         */
         PEER,
         SNAPSHOT,
         LOCAL_SHARDS

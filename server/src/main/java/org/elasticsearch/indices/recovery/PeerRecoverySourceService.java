@@ -48,6 +48,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
+ * 接收target 分片的恢复请求,启动恢复流程
  * The source recovery accepts recovery requests from other peer shards and start the recovery process from this
  * source shard to the target shard.
  */
@@ -71,6 +72,9 @@ public class PeerRecoverySourceService implements IndexEventListener {
         this.transportService = transportService;
         this.indicesService = indicesService;
         this.recoverySettings = recoverySettings;
+        //PeerRecoverySourceService构造函数
+        //StartRecoveryTransportRequestHandler主要负责处理Target端启动恢复的
+        //请求，创建RecoverySourceHandler对象实例，开始恢复流程
         transportService.registerRequestHandler(Actions.START_RECOVERY, StartRecoveryRequest::new, ThreadPool.Names.GENERIC,
             new StartRecoveryTransportRequestHandler());
     }

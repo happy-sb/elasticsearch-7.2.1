@@ -107,6 +107,9 @@ public final class AutoCreateIndex {
     }
 
     static class AutoCreate {
+        /**
+         * 是否自动创建索引,默认true,通过 "action.auto_create_index" jvm 参数控制 {@link AutoCreateIndex#AUTO_CREATE_INDEX_SETTING}
+         */
         private final boolean autoCreateIndex;
         private final List<Tuple<String, Boolean>> expressions;
         private final String string;

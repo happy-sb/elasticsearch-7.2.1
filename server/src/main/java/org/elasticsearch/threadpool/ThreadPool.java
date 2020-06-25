@@ -162,6 +162,9 @@ public class ThreadPool implements Scheduler, Closeable {
         THREAD_POOL_TYPES = Collections.unmodifiableMap(map);
     }
 
+    /**
+     * {@link Names} 里每个组件及其相应的线程池持有者
+     */
     private final Map<String, ExecutorHolder> executors;
 
     private final ThreadPoolInfo threadPoolInfo;
@@ -172,6 +175,9 @@ public class ThreadPool implements Scheduler, Closeable {
 
     private final ThreadContext threadContext;
 
+    /**
+     * {@link Names} 里每个组件及其相应的线程池构建器
+     */
     private final Map<String, ExecutorBuilder> builders;
 
     private final ScheduledThreadPoolExecutor scheduler;

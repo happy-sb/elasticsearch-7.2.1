@@ -81,6 +81,10 @@ public class TransportShardBulkAction extends TransportWriteAction<BulkShardRequ
     private static final Logger logger = LogManager.getLogger(TransportShardBulkAction.class);
 
     private final UpdateHelper updateHelper;
+
+    /**
+     * 映射更新的action
+     */
     private final MappingUpdatedAction mappingUpdatedAction;
 
     @Inject

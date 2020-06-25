@@ -314,6 +314,7 @@ final class Bootstrap {
         // the security manager is installed
         BootstrapInfo.init();
 
+        // 实例化一个启动器，同时设置一个后台的 keepAliveThread 线程
         INSTANCE = new Bootstrap();
 
         final SecureSettings keystore = loadSecureSettings(initialEnv);

@@ -24,6 +24,9 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
+/**
+ * ES报文头部
+ */
 public class TcpHeader {
     public static final int MARKER_BYTES_SIZE = 2 * 1;
 
@@ -35,8 +38,21 @@ public class TcpHeader {
 
     public static final int VERSION_ID_SIZE = 4;
 
+    /**
+     * 报文头部长度 2 + 4 + 8 + 1 + 4 = 19字节
+     */
     public static final int HEADER_SIZE = MARKER_BYTES_SIZE + MESSAGE_LENGTH_SIZE + REQUEST_ID_SIZE + STATUS_SIZE + VERSION_ID_SIZE;
 
+    /**
+     * 写报文头部
+     *
+     * @param output
+     * @param requestId
+     * @param status
+     * @param version
+     * @param messageSize
+     * @throws IOException
+     */
     public static void writeHeader(StreamOutput output, long requestId, byte status, Version version, int messageSize) throws IOException {
         output.writeByte((byte)'E');
         output.writeByte((byte)'S');

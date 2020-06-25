@@ -67,6 +67,15 @@ public class OperationRouting {
         this.awarenessAttributes = awarenessAttributes;
     }
 
+    /**
+     * 得到要操作的分片
+     *
+     * @param clusterState
+     * @param index
+     * @param id
+     * @param routing
+     * @return
+     */
     public ShardIterator indexShards(ClusterState clusterState, String index, String id, @Nullable String routing) {
         return shards(clusterState, index, id, routing).shardsIt();
     }

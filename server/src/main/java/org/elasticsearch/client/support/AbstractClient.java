@@ -344,12 +344,18 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Map;
 
+/**
+ * 抽象的客户端操作,默认实现{@link org.elasticsearch.client.node.NodeClient}
+ */
 public abstract class AbstractClient implements Client {
 
     protected final Logger logger;
 
     protected final Settings settings;
     private final ThreadPool threadPool;
+    /**
+     *  持有 {@link IndicesAdmin} 和 {@link ClusterAdmin}
+     */
     private final Admin admin;
     private final ThreadedActionListener.Wrapper threadedWrapper;
 

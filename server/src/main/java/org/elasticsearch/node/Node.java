@@ -265,6 +265,7 @@ public class Node implements Closeable {
         final List<Closeable> resourcesToClose = new ArrayList<>(); // register everything we need to release in the case of an error
         boolean success = false;
         try {
+            // 收集所有配置
             Settings tmpSettings = Settings.builder().put(environment.settings())
                 .put(Client.CLIENT_TYPE_SETTING_S.getKey(), CLIENT_TYPE).build();
 
@@ -274,6 +275,7 @@ public class Node implements Closeable {
                     NODE_NAME_SETTING.get(tmpSettings), nodeEnvironment.nodeId(),
                     ClusterName.CLUSTER_NAME_SETTING.get(tmpSettings).value());
 
+            // 获取jvm相关数据, 比如命令行参数
             final JvmInfo jvmInfo = JvmInfo.jvmInfo();
             logger.info(
                 "version[{}], pid[{}], build[{}/{}/{}/{}], OS[{}/{}/{}], JVM[{}/{}/{}/{}]",
@@ -303,6 +305,7 @@ public class Node implements Closeable {
                     environment.configFile(), Arrays.toString(environment.dataFiles()), environment.logsFile(), environment.pluginsFile());
             }
 
+            // 插件相关
             this.pluginsService = new PluginsService(tmpSettings, environment.configFile(), environment.modulesFile(),
                 environment.pluginsFile(), classpathPlugins);
             final Settings settings = pluginsService.updatedSettings();
@@ -559,8 +562,10 @@ public class Node implements Closeable {
                     {
                         RecoverySettings recoverySettings = new RecoverySettings(settings, settingsModule.getClusterSettings());
                         processRecoverySettings(settingsModule.getClusterSettings(), recoverySettings);
+                        // peer to peer 恢复的数据来源端
                         b.bind(PeerRecoverySourceService.class).toInstance(new PeerRecoverySourceService(transportService,
                                 indicesService, recoverySettings));
+                        // peer to peer 恢复的数据目标端,也就是要恢复的节点
                         b.bind(PeerRecoveryTargetService.class).toInstance(new PeerRecoveryTargetService(threadPool,
                                 transportService, recoverySettings, clusterService));
                     }

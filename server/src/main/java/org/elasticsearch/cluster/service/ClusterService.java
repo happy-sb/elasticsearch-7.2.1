@@ -42,6 +42,9 @@ import org.elasticsearch.threadpool.ThreadPool;
 import java.util.Collections;
 import java.util.Map;
 
+/**
+ * 集群服务
+ */
 public class ClusterService extends AbstractLifecycleComponent {
     private final MasterService masterService;
 
@@ -84,6 +87,7 @@ public class ClusterService extends AbstractLifecycleComponent {
             this::setSlowTaskLoggingThreshold);
         // Add a no-op update consumer so changes are logged
         this.clusterSettings.addAffixUpdateConsumer(USER_DEFINED_META_DATA, (first, second) -> {}, (first, second) -> {});
+        // 集群应用服务
         this.clusterApplierService = clusterApplierService;
     }
 

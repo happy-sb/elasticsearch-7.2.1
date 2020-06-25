@@ -210,12 +210,16 @@ public abstract class TransportClient extends AbstractClient {
 
             // construct the list of client actions
             final List<ActionPlugin> actionPlugins = pluginsService.filterPlugins(ActionPlugin.class);
+
+            // 获取ActionModule中注册的Action
             final List<Action> clientActions =
                     actionPlugins.stream().flatMap(p -> p.getClientActions().stream()).collect(Collectors.toList());
             // add all the base actions
             final List<? extends Action<?>> baseActions =
                     actionModule.getActions().values().stream().map(ActionPlugin.ActionHandler::getAction).collect(Collectors.toList());
             clientActions.addAll(baseActions);
+
+            // 将所有的action放入client中
             final TransportProxyClient proxy = new TransportProxyClient(settings, transportService, nodesService, clientActions);
 
             List<LifecycleComponent> pluginLifecycleComponents = new ArrayList<>(pluginsService.getGuiceServiceClasses().stream()

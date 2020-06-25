@@ -225,6 +225,7 @@ public final class ConnectionProfile {
             }
             addedTypes.addAll(Arrays.asList(types));
             handles.add(new ConnectionTypeHandle(this.numConnections, numConnections, EnumSet.copyOf(Arrays.asList(types))));
+            // 连接数增加
             this.numConnections += numConnections;
             return this;
         }

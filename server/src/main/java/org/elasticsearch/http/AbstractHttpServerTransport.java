@@ -315,8 +315,10 @@ public abstract class AbstractHttpServerTransport extends AbstractLifecycleCompo
         final ThreadContext threadContext = threadPool.getThreadContext();
         try (ThreadContext.StoredContext ignore = threadContext.stashContext()) {
             if (badRequestCause != null) {
+                // 转发处理不正常请求
                 dispatcher.dispatchBadRequest(restRequest, channel, threadContext, badRequestCause);
             } else {
+                // RestController转发请求
                 dispatcher.dispatchRequest(restRequest, channel, threadContext);
             }
         }

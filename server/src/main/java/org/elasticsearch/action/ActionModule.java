@@ -354,6 +354,7 @@ public class ActionModule extends AbstractModule {
     private final ClusterSettings clusterSettings;
     private final SettingsFilter settingsFilter;
     private final List<ActionPlugin> actionPlugins;
+    // 设置所有actions
     private final Map<String, ActionHandler<?, ?>> actions;
     private final ActionFilters actionFilters;
     private final AutoCreateIndex autoCreateIndex;
@@ -407,6 +408,12 @@ public class ActionModule extends AbstractModule {
         return actions;
     }
 
+    /**
+     * 设置action,将他们注册到集合中
+     *
+     * @param actionPlugins
+     * @return
+     */
     static Map<String, ActionHandler<?, ?>> setupActions(List<ActionPlugin> actionPlugins) {
         // Subclass NamedRegistry for easy registration
         class ActionRegistry extends NamedRegistry<ActionHandler<?, ?>> {

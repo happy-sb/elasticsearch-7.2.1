@@ -106,6 +106,7 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
         this.threadPool = threadPool;
         this.state = new AtomicReference<>();
         this.slowTaskLoggingThreshold = CLUSTER_SERVICE_SLOW_TASK_LOGGING_THRESHOLD_SETTING.get(settings);
+        // 创建监听集群状态变更信息的监听器
         this.localNodeMasterListeners = new LocalNodeMasterListeners(threadPool);
         this.nodeName = nodeName;
     }

@@ -187,6 +187,13 @@ public class RestController implements HttpServerTransport.Dispatcher {
         }
     }
 
+    /**
+     * 处理不正常的请求
+     *
+     * @param request
+     * @param channel
+     * @param cause
+     */
     @Override
     public void dispatchBadRequest(final RestRequest request, final RestChannel channel,
                                    final ThreadContext threadContext, final Throwable cause) {
@@ -210,6 +217,7 @@ public class RestController implements HttpServerTransport.Dispatcher {
     }
 
     /**
+     * 处理请求
      * Dispatch the request, if possible, returning true if a response was sent or false otherwise.
      */
     boolean dispatchRequest(final RestRequest request, final RestChannel channel, final NodeClient client,

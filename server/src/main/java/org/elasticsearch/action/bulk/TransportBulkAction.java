@@ -93,6 +93,9 @@ import static java.util.Collections.emptyMap;
 public class TransportBulkAction extends HandledTransportAction<BulkRequest, BulkResponse> {
 
     private final ThreadPool threadPool;
+    /**
+     * 自动创建索引
+     */
     private final AutoCreateIndex autoCreateIndex;
     private final ClusterService clusterService;
     private final IngestService ingestService;
@@ -154,7 +157,12 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
         final long startTime = relativeTime();
         final AtomicArray<BulkItemResponse> responses = new AtomicArray<>(bulkRequest.requests.size());
 
+        // 当前Index请求是不是一个ingest请求,数据需要经过预处理后才会真正被处理。预处理后 pipeline 标识会被删除,也就是数据不会被预处理两次
+        // 先执行ingest预处理,抹去pipeline标识,然后再调用此方法做实际处理
+
+
         boolean hasIndexRequestsWithPipelines = false;
+
         final MetaData metaData = clusterService.state().getMetaData();
         ImmutableOpenMap<String, IndexMetaData> indicesMetaData = metaData.indices();
         for (DocWriteRequest<?> actionRequest : bulkRequest.requests) {
@@ -209,9 +217,11 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
             // also with IngestService.NOOP_PIPELINE_NAME on each request. This ensures that this on the second time through this method,
             // this path is never taken.
             try {
+                // 如果当前节点是个ingest节点
                 if (clusterService.localNode().isIngestNode()) {
                     processBulkIndexIngestRequest(task, bulkRequest, listener);
                 } else {
+                    // 如果不是ingest节点,那么将此请求先转发给ingest节点
                     ingestForwarder.forwardIngestRequest(BulkAction.INSTANCE, bulkRequest, listener);
                 }
             } catch (Exception e) {
@@ -220,6 +230,7 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
             return;
         }
 
+        // 判断是否配置为需要自动创建不存在的索引,默认true
         if (needToCheck()) {
             // Attempt to create all the indices that we're going to need during the bulk before we start.
             // Step 1: collect all the indices in the request
@@ -248,6 +259,8 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
                     autoCreateIndices.add(index);
                 }
             }
+
+            //配置为自动创建不存在的索引，但是没有检测到执行request需要创建不存在的索引
             // Step 3: create all the indices that are missing, if there are any missing. start the bulk after all the creates come back.
             if (autoCreateIndices.isEmpty()) {
                 executeBulk(task, bulkRequest, startTime, listener, responses, indicesThatCannotBeCreated);
@@ -285,6 +298,7 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
                 }
             }
         } else {
+            //如果没有需要自动创建的索引，则直接执行具体的写操作
             executeBulk(task, bulkRequest, startTime, listener, responses, emptyMap());
         }
     }
@@ -400,6 +414,7 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
                 }
             }
 
+            // 分片和其上对应的请求
             // first, go over all the requests and create a ShardId -> Operations mapping
             Map<ShardId, List<BulkItemRequest>> requestsByShard = new HashMap<>();
             for (int i = 0; i < bulkRequest.requests.size(); i++) {
@@ -408,8 +423,10 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
                     continue;
                 }
                 String concreteIndex = concreteIndices.getConcreteIndex(request.index()).getName();
+                // 路由到指定分片
                 ShardId shardId = clusterService.operationRouting().indexShards(clusterState, concreteIndex, request.id(),
                     request.routing()).shardId();
+                // 如果此分片还没有请求,那么map里创建一个集合
                 List<BulkItemRequest> shardRequests = requestsByShard.computeIfAbsent(shardId, shard -> new ArrayList<>());
                 shardRequests.add(new BulkItemRequest(i, request));
             }
@@ -421,13 +438,16 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
             }
 
             final AtomicInteger counter = new AtomicInteger(requestsByShard.size());
+            // 当前节点的id
             String nodeId = clusterService.localNode().getId();
             for (Map.Entry<ShardId, List<BulkItemRequest>> entry : requestsByShard.entrySet()) {
                 final ShardId shardId = entry.getKey();
                 final List<BulkItemRequest> requests = entry.getValue();
                 BulkShardRequest bulkShardRequest = new BulkShardRequest(shardId, bulkRequest.getRefreshPolicy(),
                         requests.toArray(new BulkItemRequest[requests.size()]));
+                // 要等待分片的几个slave也操作好
                 bulkShardRequest.waitForActiveShards(bulkRequest.waitForActiveShards());
+                // 请求超时
                 bulkShardRequest.timeout(bulkRequest.timeout());
                 if (task != null) {
                     bulkShardRequest.setParentTask(nodeId, task.getId());
@@ -440,9 +460,12 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
                             if (bulkItemResponse.getResponse() != null) {
                                 bulkItemResponse.getResponse().setShardInfo(bulkShardResponse.getShardInfo());
                             }
+                            // 按照请求的id设置相应顺序
                             responses.set(bulkItemResponse.getItemId(), bulkItemResponse);
                         }
+                        // 如果所有请求都有了相应
                         if (counter.decrementAndGet() == 0) {
+                            // 将结果返回给客户端
                             finishHim();
                         }
                     }
@@ -576,9 +599,18 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
         return relativeTimeProvider.getAsLong();
     }
 
+
+    /**
+     * 处理批量索引请求,且做ingest预处理
+     *
+     * @param task
+     * @param original
+     * @param listener
+     */
     void processBulkIndexIngestRequest(Task task, BulkRequest original, ActionListener<BulkResponse> listener) {
         long ingestStartTimeInNanos = System.nanoTime();
         BulkRequestModifier bulkRequestModifier = new BulkRequestModifier(original);
+        // 获取ingest管道处理服务执行批量请求
         ingestService.executeBulkRequest(() -> bulkRequestModifier,
             (indexRequest, exception) -> {
                 logger.debug(() -> new ParameterizedMessage("failed to execute pipeline [{}] for document [{}/{}/{}]",
@@ -588,7 +620,9 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
                 if (exception != null) {
                     logger.error("failed to execute pipeline for a bulk request", exception);
                     listener.onFailure(exception);
-                } else {
+                }
+                // 如果数据预处理成功,也就是没有异常
+                else {
                     long ingestTookInMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - ingestStartTimeInNanos);
                     BulkRequest bulkRequest = bulkRequestModifier.getBulkRequest();
                     ActionListener<BulkResponse> actionListener = bulkRequestModifier.wrapActionListenerIfNeeded(ingestTookInMillis,
@@ -599,6 +633,7 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
                         // (this will happen if pre-processing all items in the bulk failed)
                         actionListener.onResponse(new BulkResponse(new BulkItemResponse[0], 0));
                     } else {
+                        // 回调之前的函数,因为pipeline标识以被删除,此时会执行实际处理,且request内的数据已经被处理过了
                         doExecute(task, bulkRequest, actionListener);
                     }
                 }

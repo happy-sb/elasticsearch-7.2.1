@@ -270,8 +270,20 @@ public class IndexMetaData implements Diffable<IndexMetaData>, ToXContentFragmen
     public static final String KEY_PRIMARY_TERMS = "primary_terms";
 
     public static final String INDEX_STATE_FILE_PREFIX = "state-";
+
+    /**
+     * 可路由的分片数目
+     */
     private final int routingNumShards;
+
+    /**
+     * 路由因子,默认1
+     */
     private final int routingFactor;
+
+    /**
+     * 可路由的分区数目
+     */
     private final int routingPartitionSize;
 
     private final int numberOfShards;
