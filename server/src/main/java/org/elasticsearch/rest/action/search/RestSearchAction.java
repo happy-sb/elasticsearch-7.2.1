@@ -21,6 +21,7 @@ package org.elasticsearch.rest.action.search;
 
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.TransportSearchAction;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.Booleans;
@@ -55,6 +56,9 @@ import static org.elasticsearch.rest.RestRequest.Method.GET;
 import static org.elasticsearch.rest.RestRequest.Method.POST;
 import static org.elasticsearch.search.suggest.SuggestBuilders.termSuggestion;
 
+/**
+ * @see TransportSearchAction
+ */
 public class RestSearchAction extends BaseRestHandler {
     /**
      * Indicates whether hits.total should be rendered as an integer or an object
@@ -105,7 +109,10 @@ public class RestSearchAction extends BaseRestHandler {
          * be null later. If that is confusing to you then you are in good
          * company.
          */
+        // 要查询的条数, 默认10
         IntConsumer setSize = size -> searchRequest.source().size(size);
+
+        // 解析请求body和参数
         request.withContentOrSourceParamParserOrNull(parser ->
             parseSearchRequest(searchRequest, request, parser, setSize));
 
@@ -126,8 +133,11 @@ public class RestSearchAction extends BaseRestHandler {
         if (searchRequest.source() == null) {
             searchRequest.source(new SearchSourceBuilder());
         }
+
+        // 指定要查询哪几个索引, 可用逗号分隔指定多个, 比如 index=a,b
         searchRequest.indices(Strings.splitStringByCommaToArray(request.param("index")));
         if (requestContentParser != null) {
+            // 解析请求的Body
             searchRequest.source().parseXContent(requestContentParser, true);
         }
 
@@ -158,11 +168,14 @@ public class RestSearchAction extends BaseRestHandler {
         } else {
             searchRequest.searchType(searchType);
         }
+
+        // 将请求参数填入SearchSourceBuilder
         parseSearchSource(searchRequest.source(), request, setSize);
         searchRequest.requestCache(request.paramAsBoolean("request_cache", null));
 
         String scroll = request.param("scroll");
         if (scroll != null) {
+            // 如果是滚屏查询, 设置滚屏开启时间。  scroll=1m , 保持滚屏开启1分钟
             searchRequest.scroll(new Scroll(parseTimeValue(scroll, null, "scroll")));
         }
 
@@ -170,7 +183,9 @@ public class RestSearchAction extends BaseRestHandler {
             deprecationLogger.deprecatedAndMaybeLog("search_with_types", TYPES_DEPRECATION_MESSAGE);
             searchRequest.types(Strings.splitStringByCommaToArray(request.param("type")));
         }
+        // 分片路由
         searchRequest.routing(request.param("routing"));
+        // 分片内(primary,replicas)的偏好
         searchRequest.preference(request.param("preference"));
         searchRequest.indicesOptions(IndicesOptions.fromRequest(request, searchRequest.indicesOptions()));
         searchRequest.setCcsMinimizeRoundtrips(request.paramAsBoolean("ccs_minimize_roundtrips", true));
@@ -179,6 +194,7 @@ public class RestSearchAction extends BaseRestHandler {
     }
 
     /**
+     * 将request请求上的参数填充到SearchSource里
      * Parses the rest request on top of the SearchSourceBuilder, preserving
      * values that are not overridden by the rest request.
      */
@@ -187,16 +203,17 @@ public class RestSearchAction extends BaseRestHandler {
         if (queryBuilder != null) {
             searchSourceBuilder.query(queryBuilder);
         }
-
+        // from
         int from = request.paramAsInt("from", -1);
         if (from != -1) {
             searchSourceBuilder.from(from);
         }
+        // size
         int size = request.paramAsInt("size", -1);
         if (size != -1) {
             setSize.accept(size);
         }
-
+        // 搜索的详细相关性详细信息
         if (request.hasParam("explain")) {
             searchSourceBuilder.explain(request.paramAsBoolean("explain", null));
         }
@@ -206,6 +223,7 @@ public class RestSearchAction extends BaseRestHandler {
         if (request.hasParam("seq_no_primary_term")) {
             searchSourceBuilder.seqNoAndPrimaryTerm(request.paramAsBoolean("seq_no_primary_term", null));
         }
+        // 超时设置
         if (request.hasParam("timeout")) {
             searchSourceBuilder.timeout(request.paramAsTime("timeout", null));
         }
@@ -254,7 +272,7 @@ public class RestSearchAction extends BaseRestHandler {
                 );
             }
         }
-
+        // 排序
         String sSorts = request.param("sort");
         if (sSorts != null) {
             String[] sorts = Strings.splitStringByCommaToArray(sSorts);

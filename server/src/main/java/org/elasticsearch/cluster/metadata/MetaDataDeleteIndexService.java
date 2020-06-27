@@ -70,6 +70,7 @@ public class MetaDataDeleteIndexService {
             throw new IllegalArgumentException("Index name is required");
         }
 
+        // 集群服务提交删除索引任务, 这样集群状态变更了能通知所有的监听器
         clusterService.submitStateUpdateTask("delete-index " + Arrays.toString(request.indices()),
             new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(Priority.URGENT, request, listener) {
 
@@ -80,16 +81,23 @@ public class MetaDataDeleteIndexService {
 
             @Override
             public ClusterState execute(final ClusterState currentState) {
+                // 执行删除索引
                 return deleteIndices(currentState, Sets.newHashSet(request.indices()));
             }
         });
     }
 
     /**
+     * 从集群状态中删除一些索引, 这样发布状态后同步变化
      * Delete some indices from the cluster state.
+     *
+     * @param currentState
+     * @param indices
+     * @return 返回新的集群状态, 好同步给其他的节点
      */
     public ClusterState deleteIndices(ClusterState currentState, Set<Index> indices) {
         final MetaData meta = currentState.metaData();
+        // 收集待删除的索引的元数据信息
         final Set<IndexMetaData> metaDatas = indices.stream().map(i -> meta.getIndexSafe(i)).collect(toSet());
         // Check if index deletion conflicts with any running snapshots
         SnapshotsService.checkIndexDeletion(currentState, metaDatas);
@@ -102,7 +110,10 @@ public class MetaDataDeleteIndexService {
         for (final Index index : indices) {
             String indexName = index.getName();
             logger.info("{} deleting index", index);
+            // 路由表删除索引
             routingTableBuilder.remove(indexName);
+
+            // 删除索引元数据
             clusterBlocksBuilder.removeIndexBlocks(indexName);
             metaDataBuilder.remove(indexName);
         }

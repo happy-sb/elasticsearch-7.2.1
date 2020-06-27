@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
+ *  需要传播到Replica的请求的父Action
  * Base class for requests that should be executed on all shards of an index or several indices.
  * This action sends shard requests to all primary shards of the indices and they are then replicated like write requests
  */
@@ -108,11 +109,13 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
                     }
                 }
             };
+            // 执行分片发送请求
             shardExecute(task, request, shardId, shardActionListener);
         }
     }
 
     protected void shardExecute(Task task, Request request, ShardId shardId, ActionListener<ShardResponse> shardActionListener) {
+        // 分片请求,是refresh或者flush
         ShardRequest shardRequest = newShardRequest(request, shardId);
         shardRequest.setParentTask(clusterService.localNode().getId(), task.getId());
         replicatedBroadcastShardAction.execute(shardRequest, shardActionListener);

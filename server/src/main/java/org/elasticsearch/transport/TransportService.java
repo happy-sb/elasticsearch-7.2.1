@@ -176,6 +176,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         this.interceptor = transportInterceptor;
         // 节点间请求的异步发送者, SecurityServerTransportInterceptor 对其做个拦截,做权限校验(如果有的话)
         this.asyncSender = interceptor.interceptSender(this::sendRequestInternal);
+        // 是否允许连接到集群, 如果false 则当前节点是一个 coordinating 节点, 也就是负载均衡节点, 不存储数据
         this.connectToRemoteCluster = RemoteClusterService.ENABLE_REMOTE_CLUSTERS.get(settings);
         remoteClusterService = new RemoteClusterService(settings, this);
         responseHandlers = transport.getResponseHandlers();

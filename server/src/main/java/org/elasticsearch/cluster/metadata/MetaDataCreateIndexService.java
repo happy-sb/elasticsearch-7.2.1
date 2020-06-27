@@ -244,6 +244,9 @@ public class MetaDataCreateIndexService {
         void validate(CreateIndexClusterStateUpdateRequest request, ClusterState state);
     }
 
+    /**
+     * 索引创建任务
+     */
     static class IndexCreationTask extends AckedClusterStateUpdateTask<ClusterStateUpdateResponse> {
 
         private final IndicesService indicesService;
@@ -277,6 +280,14 @@ public class MetaDataCreateIndexService {
             return new ClusterStateUpdateResponse(acknowledged);
         }
 
+        /**
+         * 仅在ES里创建索引信息, 未同步至Lucene
+         * 也可能是索引Mapping和settings的更新, 比如索引集群收缩或者拆分
+         *
+         * @param currentState
+         * @return
+         * @throws Exception
+         */
         @Override
         public ClusterState execute(ClusterState currentState) throws Exception {
             Index createdIndex = null;
@@ -296,13 +307,14 @@ public class MetaDataCreateIndexService {
 
                 Map<String, Map<String, String>> customs = new HashMap<>();
 
-                // add the request mapping
+                // add the request mapping  Field映射
                 Map<String, Map<String, Object>> mappings = new HashMap<>();
 
                 Map<String, AliasMetaData> templatesAliases = new HashMap<>();
 
                 List<String> templateNames = new ArrayList<>();
 
+                // 遍历属性映射
                 for (Map.Entry<String, String> entry : request.mappings().entrySet()) {
                     mappings.put(entry.getKey(), MapperService.parseMapping(xContentRegistry, entry.getValue()));
                 }
@@ -378,23 +390,33 @@ public class MetaDataCreateIndexService {
                     }
                 }
                 // now, put the request settings, so they override templates
+
+                // 优先使用请求上的settings配置, 没有的话用之前的settings
                 indexSettingsBuilder.put(request.settings());
+
                 if (indexSettingsBuilder.get(IndexMetaData.SETTING_INDEX_VERSION_CREATED.getKey()) == null) {
                     final DiscoveryNodes nodes = currentState.nodes();
                     final Version createdVersion = Version.min(Version.CURRENT, nodes.getSmallestNonClientNodeVersion());
                     indexSettingsBuilder.put(IndexMetaData.SETTING_INDEX_VERSION_CREATED.getKey(), createdVersion);
                 }
+
+                // 分片数量
                 if (indexSettingsBuilder.get(SETTING_NUMBER_OF_SHARDS) == null) {
                     final int numberOfShards = getNumberOfShards(indexSettingsBuilder);
                     indexSettingsBuilder.put(SETTING_NUMBER_OF_SHARDS, settings.getAsInt(SETTING_NUMBER_OF_SHARDS, numberOfShards));
                 }
+
+                // 每个分片的副本数量
                 if (indexSettingsBuilder.get(SETTING_NUMBER_OF_REPLICAS) == null) {
                     indexSettingsBuilder.put(SETTING_NUMBER_OF_REPLICAS, settings.getAsInt(SETTING_NUMBER_OF_REPLICAS, 1));
                 }
+
+                // 是否自动拓展副本
                 if (settings.get(SETTING_AUTO_EXPAND_REPLICAS) != null && indexSettingsBuilder.get(SETTING_AUTO_EXPAND_REPLICAS) == null) {
                     indexSettingsBuilder.put(SETTING_AUTO_EXPAND_REPLICAS, settings.get(SETTING_AUTO_EXPAND_REPLICAS));
                 }
 
+                // settings创建时间, UTC格式
                 if (indexSettingsBuilder.get(SETTING_CREATION_DATE) == null) {
                     indexSettingsBuilder.put(SETTING_CREATION_DATE, Instant.now().toEpochMilli());
                 }
@@ -403,6 +425,8 @@ public class MetaDataCreateIndexService {
                 final IndexMetaData.Builder tmpImdBuilder = IndexMetaData.builder(request.index());
                 final Settings idxSettings = indexSettingsBuilder.build();
                 int numTargetShards = IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.get(idxSettings);
+
+                // 最大路由分片, 当索引集群收缩时需要重新制定路由分片数量
                 final int routingNumShards;
                 final Version indexVersionCreated = IndexMetaData.SETTING_INDEX_VERSION_CREATED.get(idxSettings);
                 final IndexMetaData sourceMetaData = recoverFromIndex == null ? null :
@@ -426,6 +450,7 @@ public class MetaDataCreateIndexService {
                 tmpImdBuilder.setRoutingNumShards(routingNumShards);
 
                 if (recoverFromIndex != null) {
+                    // Index 重设置集群大小, 可能是收缩,也可能是拆分
                     assert request.resizeType() != null;
                     prepareResizeIndexSettings(
                             currentState,

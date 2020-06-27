@@ -24,6 +24,7 @@ import org.elasticsearch.index.shard.ShardId;
 import java.util.List;
 
 /**
+ * 简单的分片遍历器
  * The {@link PlainShardIterator} is a {@link ShardsIterator} which iterates all
  * shards or a given {@link ShardId shard id}
  */

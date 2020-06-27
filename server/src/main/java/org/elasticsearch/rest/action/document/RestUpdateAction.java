@@ -38,6 +38,9 @@ import java.io.IOException;
 
 import static org.elasticsearch.rest.RestRequest.Method.POST;
 
+/**
+ * 文档更新请求
+ */
 public class RestUpdateAction extends BaseRestHandler {
     private static final DeprecationLogger deprecationLogger =
         new DeprecationLogger(LogManager.getLogger(RestUpdateAction.class));
@@ -59,6 +62,7 @@ public class RestUpdateAction extends BaseRestHandler {
 
     @Override
     public RestChannelConsumer prepareRequest(final RestRequest request, final NodeClient client) throws IOException {
+        // 文档三要素的索引，类型，id
         UpdateRequest updateRequest;
         if (request.hasParam("type")) {
             deprecationLogger.deprecatedAndMaybeLog("update_with_types", TYPES_DEPRECATION_MESSAGE);
@@ -68,10 +72,13 @@ public class RestUpdateAction extends BaseRestHandler {
         } else {
             updateRequest = new UpdateRequest(request.param("index"), request.param("id"));
         }
-
+        // 路由
         updateRequest.routing(request.param("routing"));
+        // 超时时间
         updateRequest.timeout(request.paramAsTime("timeout", updateRequest.timeout()));
+        // 是否刷新
         updateRequest.setRefreshPolicy(request.param("refresh"));
+        // 要等几个可用的分片恢复
         String waitForActiveShards = request.param("wait_for_active_shards");
         if (waitForActiveShards != null) {
             updateRequest.waitForActiveShards(ActiveShardCount.parseString(waitForActiveShards));

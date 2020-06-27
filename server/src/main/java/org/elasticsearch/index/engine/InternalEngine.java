@@ -303,8 +303,17 @@ public class InternalEngine extends Engine {
     @SuppressForbidden(reason = "reference counting is required here")
     private static final class ExternalSearcherManager extends ReferenceManager<IndexSearcher> {
         private final SearcherFactory searcherFactory;
+        // 内部持有一个 SearcherManager
         private final SearcherManager internalSearcherManager;
 
+        /**
+         * 通过 SearcherManager 里的  IndexSearcher 内部的 indexReader , 来重新生成一个 IndexSearcher
+         * 而不是直接使用 {@link #internalSearcherManager} 里的 IndexSearcher
+         *
+         * @param internalSearcherManager
+         * @param searcherFactory
+         * @throws IOException
+         */
         ExternalSearcherManager(SearcherManager internalSearcherManager, SearcherFactory searcherFactory) throws IOException {
             IndexSearcher acquire = internalSearcherManager.acquire();
             try {
@@ -312,6 +321,7 @@ public class InternalEngine extends Engine {
                 assert indexReader instanceof ElasticsearchDirectoryReader:
                     "searcher's IndexReader should be an ElasticsearchDirectoryReader, but got " + indexReader;
                 indexReader.incRef(); // steal the reader - getSearcher will decrement if it fails
+                // 通过 indexReader 再重新生成一个 IndexSearcher
                 current = SearcherManager.getSearcher(searcherFactory, indexReader, null);
             } finally {
                 internalSearcherManager.release(acquire);
@@ -320,18 +330,28 @@ public class InternalEngine extends Engine {
             this.internalSearcherManager = internalSearcherManager;
         }
 
+        /**
+         * 是否需要刷新IndexSearcher
+         *
+         * @param referenceToRefresh
+         * @return
+         * @throws IOException
+         */
         @Override
         protected IndexSearcher refreshIfNeeded(IndexSearcher referenceToRefresh) throws IOException {
             // we simply run a blocking refresh on the internal reference manager and then steal it's reader
             // it's a save operation since we acquire the reader which incs it's reference but then down the road
             // steal it by calling incRef on the "stolen" reader
             internalSearcherManager.maybeRefreshBlocking();
+            // 拿到内部刷新过的 IndexSearcher
             IndexSearcher acquire = internalSearcherManager.acquire();
             try {
+                // 拿到之前的索引读取器, 如果索引目录内数据发生变化, 这个对象就会发生变化
                 final IndexReader previousReader = referenceToRefresh.getIndexReader();
                 assert previousReader instanceof ElasticsearchDirectoryReader:
                     "searcher's IndexReader should be an ElasticsearchDirectoryReader, but got " + previousReader;
 
+                // 如果索引目录内发生变化, 这个对象就会发生变化
                 final IndexReader newReader = acquire.getIndexReader();
                 if (newReader == previousReader) {
                     // nothing has changed - both ref managers share the same instance so we can use reference equality
@@ -1650,6 +1670,11 @@ public class InternalEngine extends Engine {
         return renewed;
     }
 
+    /**
+     * 是否应该触发Flush
+     *
+     * @return
+     */
     @Override
     public boolean shouldPeriodicallyFlush() {
         ensureOpen();
@@ -2125,6 +2150,12 @@ public class InternalEngine extends Engine {
         }
     }
 
+    /**
+     * 创建Lucen的IndexWriter
+     *
+     * @return
+     * @throws IOException
+     */
     private IndexWriter createWriter() throws IOException {
         try {
             final IndexWriterConfig iwc = getIndexWriterConfig();
