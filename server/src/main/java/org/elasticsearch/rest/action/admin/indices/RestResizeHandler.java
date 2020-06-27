@@ -24,6 +24,7 @@ import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
 import org.elasticsearch.action.admin.indices.shrink.ResizeType;
+import org.elasticsearch.action.admin.indices.shrink.TransportResizeAction;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.Booleans;
@@ -36,6 +37,9 @@ import org.elasticsearch.rest.action.RestToXContentListener;
 
 import java.io.IOException;
 
+/**
+ * @see TransportResizeAction
+ */
 public abstract class RestResizeHandler extends BaseRestHandler {
     private static final Logger logger = LogManager.getLogger(RestResizeHandler.class);
     private static final DeprecationLogger deprecationLogger = new DeprecationLogger(logger);
@@ -47,11 +51,17 @@ public abstract class RestResizeHandler extends BaseRestHandler {
     @Override
     public abstract String getName();
 
+    /**
+     * 获取resize的类型，是收缩还是拆分
+     * @return
+     */
     abstract ResizeType getResizeType();
 
     @Override
     public final RestChannelConsumer prepareRequest(final RestRequest request, final NodeClient client) throws IOException {
         final ResizeRequest resizeRequest = new ResizeRequest(request.param("target"), request.param("index"));
+
+        // 设置resize的类型，是收缩还是拆分
         resizeRequest.setResizeType(getResizeType());
         // copy_settings should be removed in Elasticsearch 8.0.0; cf. https://github.com/elastic/elasticsearch/issues/28347
         assert Version.CURRENT.major < 8;

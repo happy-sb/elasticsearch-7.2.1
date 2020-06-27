@@ -435,14 +435,18 @@ public class MetaDataCreateIndexService {
                     // in this case we either have no index to recover from or
                     // we have a source index with 1 shard and without an explicit split factor
                     // or one that is valid in that case we can split into whatever and auto-generate a new factor.
+
+                    // 如果存在指定路由分片，则使用此配置, 这样惠后期能够扩大主分片数量
                     if (IndexMetaData.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.exists(idxSettings)) {
                         routingNumShards = IndexMetaData.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.get(idxSettings);
                     } else {
+                        // 计算路由分片数，确保索引至少能被拆分一次，也就是路由分片数至少是主分片数的两倍
                         routingNumShards = calculateNumRoutingShards(numTargetShards, indexVersionCreated);
                     }
                 } else {
                     assert IndexMetaData.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.exists(indexSettingsBuilder.build()) == false
                         : "index.number_of_routing_shards should not be present on the target index on resize";
+                    // 从索引的mapping里获取路由分片数
                     routingNumShards = sourceMetaData.getRoutingNumShards();
                 }
                 // remove the setting it's temporary and is only relevant once we create the index
@@ -837,6 +841,7 @@ public class MetaDataCreateIndexService {
     }
 
     /**
+     * 计算路由分片数
      * Returns a default number of routing shards based on the number of shards of the index. The default number of routing shards will
      * allow any index to be split at least once and at most 10 times by a factor of two. The closer the number or shards gets to 1024
      * the less default split operations are supported
@@ -849,12 +854,25 @@ public class MetaDataCreateIndexService {
             //
             // We use as a default number of routing shards the higher number that can be expressed
             // as {@code numShards * 2^x`} that is less than or equal to the maximum number of shards: 1024.
+            // 分片数最多只能是1024, 也就是二进制下10个有效位
             int log2MaxNumShards = 10; // logBase2(1024)
+
+            // Integer.numberOfLeadingZeros(i) :  i 转换成2进制的Integer后前面有多少个0
+
+            // Integer.numberOfLeadingZeros(4) = 29
+
+            // 分片数在二进制下的有效位长度
+            // 假设主分片数是4, log2NumShards = 32 - 30 = 2
             int log2NumShards = 32 - Integer.numberOfLeadingZeros(numShards - 1); // ceil(logBase2(numShards))
+
+            // 10 - 2 = 8
             int numSplits = log2MaxNumShards - log2NumShards;
+            // 确保此索引能被拆分至少一次
             numSplits = Math.max(1, numSplits); // Ensure the index can be split at least once
             return numShards * 1 << numSplits;
-        } else {
+        }
+        // 如果是7.0以前，那么路由分片数就是主分片数
+        else {
             return numShards;
         }
     }
