@@ -38,6 +38,7 @@ import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.Mapping;
 
 /**
+ * 映射更新Action
  * Called by shards in the cluster when their mapping was dynamically updated and it needs to be updated
  * in the cluster state meta data (and broadcast to all members).
  */
@@ -47,6 +48,9 @@ public class MappingUpdatedAction {
         Setting.positiveTimeSetting("indices.mapping.dynamic_timeout", TimeValue.timeValueSeconds(30),
             Property.Dynamic, Property.NodeScope);
 
+    /**
+     * 索引客户端
+     */
     private IndicesAdminClient client;
     private volatile TimeValue dynamicMappingUpdateTimeout;
 
@@ -65,6 +69,7 @@ public class MappingUpdatedAction {
     }
 
     /**
+     * 在Master上更新索引Mapping
      * Update mappings on the master node, waiting for the change to be committed,
      * but not for the mapping update to be applied on all nodes. The timeout specified by
      * {@code timeout} is the master node timeout ({@link MasterNodeRequest#masterNodeTimeout()}),

@@ -120,6 +120,8 @@ public class PublishClusterStateAction {
     }
 
     /**
+     * 将集群状态变更事件通知所有的其他Node, 如果至少 {@link ElectMasterService#DISCOVERY_ZEN_MINIMUM_MASTER_NODES_SETTING} 个Node ACK
+     * 则当前状态变更会被Commit, 同时应用到Master和其他的所有Node
      * publishes a cluster change event to other nodes. if at least minMasterNodes acknowledge the change it is committed and will
      * be processed by the master and the other nodes.
      * <p>
@@ -140,11 +142,13 @@ public class PublishClusterStateAction {
             nodesToPublishTo = new HashSet<>(nodes.getSize());
             DiscoveryNode localNode = nodes.getLocalNode();
             final int totalMasterNodes = nodes.getMasterNodes().size();
+            // 有哪些Node需要发送状态信息
             for (final DiscoveryNode node : nodes) {
                 if (node.equals(localNode) == false) {
                     nodesToPublishTo.add(node);
                 }
             }
+            // 是否发送全额状态， 如果存在生个状态，且支持发送状态差异
             sendFullVersion = !discoverySettings.getPublishDiff() || clusterChangedEvent.previousState() == null;
             serializedStates = new HashMap<>();
             serializedDiffs = new HashMap<>();
@@ -180,6 +184,16 @@ public class PublishClusterStateAction {
         }
     }
 
+    /**
+     * 执行集群状态发送
+     *
+     * @param clusterChangedEvent
+     * @param nodesToPublishTo
+     * @param sendingController
+     * @param sendFullVersion
+     * @param serializedStates
+     * @param serializedDiffs
+     */
     private void innerPublish(final ClusterChangedEvent clusterChangedEvent, final Set<DiscoveryNode> nodesToPublishTo,
                               final SendingController sendingController, final Discovery.AckListener ackListener,
                               final boolean sendFullVersion, final Map<Version, BytesReference> serializedStates,
@@ -191,6 +205,7 @@ public class PublishClusterStateAction {
 
         final long publishingStartInNanos = System.nanoTime();
 
+        // 给每个节点发送状态
         for (final DiscoveryNode node : nodesToPublishTo) {
             // try and serialize the cluster state once (or per version), so we don't serialize it
             // per node when we send it over the wire, compress it while we are at it...
@@ -202,6 +217,7 @@ public class PublishClusterStateAction {
             }
         }
 
+        // 等待发送了集群状态的节点的ACK
         sendingController.waitForCommit(discoverySettings.getCommitTimeout());
 
         final long commitTime = System.nanoTime() - publishingStartInNanos;
@@ -212,6 +228,8 @@ public class PublishClusterStateAction {
             long timeLeftInNanos = Math.max(0, publishTimeout.nanos() - commitTime);
             final BlockingClusterStatePublishResponseHandler publishResponseHandler = sendingController.getPublishResponseHandler();
             sendingController.setPublishingTimedOut(!publishResponseHandler.awaitAllNodes(TimeValue.timeValueNanos(timeLeftInNanos)));
+
+            // 打印那些超时了还没有ACK的节点信息
             if (sendingController.getPublishingTimedOut()) {
                 DiscoveryNode[] pendingNodes = publishResponseHandler.pendingNodes();
                 // everyone may have just responded
@@ -232,6 +250,16 @@ public class PublishClusterStateAction {
         }
     }
 
+    /**
+     * 构建集群状态的差异性, 同时序列化
+     *
+     * @param clusterState
+     * @param previousState
+     * @param nodesToPublishTo
+     * @param sendFullVersion
+     * @param serializedStates
+     * @param serializedDiffs
+     */
     private void buildDiffAndSerializeStates(ClusterState clusterState, ClusterState previousState, Set<DiscoveryNode> nodesToPublishTo,
                                              boolean sendFullVersion, Map<Version, BytesReference> serializedStates,
                                              Map<Version, BytesReference> serializedDiffs) {
@@ -502,6 +530,10 @@ public class PublishClusterStateAction {
 
         // writes and reads of these are protected under synchronization
         final CountDownLatch committedOrFailedLatch; // 0 count indicates that a decision was made w.r.t committing or failing
+
+        /**
+         * 集群状态是否Commit成功
+         */
         boolean committed;  // true if cluster state was committed
         int neededMastersToCommit; // number of master nodes acks still needed before committing
         int pendingMasterNodes; // how many master node still need to respond
@@ -523,6 +555,11 @@ public class PublishClusterStateAction {
             this.committedOrFailedLatch = new CountDownLatch(committed ? 0 : 1);
         }
 
+        /**
+         * 等待其他的非Master的Node的Commit
+         *
+         * @param commitTimeout
+         */
         public void waitForCommit(TimeValue commitTimeout) {
             boolean timedout = false;
             try {

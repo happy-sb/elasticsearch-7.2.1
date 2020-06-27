@@ -53,7 +53,14 @@ public class DiscoverySettings {
 
     private volatile TimeValue publishTimeout;
 
+    /**
+     * 集群状态Commit超时设置
+     */
     private volatile TimeValue commitTimeout;
+
+    /**
+     * 发送集群状态时，是否仅发送和上一个状态的差异,这样能节省数据
+     */
     private volatile boolean publishDiff;
 
     public DiscoverySettings(Settings settings, ClusterSettings clusterSettings) {

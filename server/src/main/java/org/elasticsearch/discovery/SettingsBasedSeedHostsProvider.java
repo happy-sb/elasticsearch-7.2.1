@@ -50,6 +50,9 @@ public class SettingsBasedSeedHostsProvider implements SeedHostsProvider {
     public static final Setting<List<String>> DISCOVERY_SEED_HOSTS_SETTING =
         Setting.listSetting("discovery.seed_hosts", emptyList(), Function.identity(), Property.NodeScope);
 
+    /**
+     * {@link #LEGACY_DISCOVERY_ZEN_PING_UNICAST_HOSTS_SETTING} 参数指定的host
+     */
     private final List<String> configuredHosts;
 
     public SettingsBasedSeedHostsProvider(Settings settings, TransportService transportService) {

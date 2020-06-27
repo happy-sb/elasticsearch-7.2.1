@@ -218,6 +218,7 @@ final class Bootstrap {
             throw new BootstrapException(e);
         }
 
+        // 实例化当前节点
         node = new Node(environment) {
             @Override
             protected void validateNodeBeforeAcceptingRequests(
@@ -371,7 +372,7 @@ final class Bootstrap {
             } catch (IOException e) {
                 throw new BootstrapException(e);
             }
-
+            // 启动es实例
             INSTANCE.start();
 
             if (closeStandardStreams) {

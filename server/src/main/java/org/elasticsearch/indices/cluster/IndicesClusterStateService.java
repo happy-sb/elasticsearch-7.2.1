@@ -235,6 +235,11 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
     protected void doClose() {
     }
 
+    /**
+     * 启动集群服务
+     *
+     * @param event
+     */
     @Override
     public synchronized void applyClusterState(final ClusterChangedEvent event) {
         if (!lifecycle.started()) {

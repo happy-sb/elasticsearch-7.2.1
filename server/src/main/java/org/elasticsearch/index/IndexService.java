@@ -331,6 +331,14 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         }
     }
 
+    /**
+     * 创建分片
+     *
+     * @param routing
+     * @param globalCheckpointSyncer
+     * @return
+     * @throws IOException
+     */
     public synchronized IndexShard createShard(
             final ShardRouting routing,
             final Consumer<ShardId> globalCheckpointSyncer,
