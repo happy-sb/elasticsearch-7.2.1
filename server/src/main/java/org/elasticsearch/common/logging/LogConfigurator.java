@@ -266,6 +266,11 @@ public class LogConfigurator {
             final Level level = s.get(settings);
             Loggers.setLevel(LogManager.getLogger(s.getKey().substring("logger.".length())), level);
         });
+        // TODO 设置默认的日志级别
+        String logLevel = System.getProperty("logger.level");
+        if (logLevel != null && Level.valueOf(logLevel) != null) {
+            Loggers.setLevel(LogManager.getRootLogger(), Level.valueOf(logLevel));
+        }
     }
 
     /**

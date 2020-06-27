@@ -32,10 +32,22 @@ import org.elasticsearch.cluster.ClusterInfoService;
 
 import java.io.IOException;
 
+/**
+ * 监控服务
+ */
 public class MonitorService extends AbstractLifecycleComponent {
 
+    /**
+     * jvm gc 监控服务
+     */
     private final JvmGcMonitorService jvmGcMonitorService;
+    /**
+     * 操作系统服务
+     */
     private final OsService osService;
+    /**
+     * 进程服务
+     */
     private final ProcessService processService;
     private final JvmService jvmService;
     private final FsService fsService;

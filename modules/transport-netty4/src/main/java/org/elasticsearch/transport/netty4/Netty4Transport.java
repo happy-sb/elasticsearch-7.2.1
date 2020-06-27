@@ -55,6 +55,7 @@ import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.Netty4Plugin;
 import org.elasticsearch.transport.TcpTransport;
 import org.elasticsearch.transport.TransportSettings;
 
@@ -70,6 +71,8 @@ import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.new
 import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 
 /**
+ * 每个节点4种链接：low/med/high/ping
+ * {@link #settings} 会通过 {@link Netty4Plugin#getSettings()} 来注入,将当前类的一些常量添加到settings中
  * There are 4 types of connections per node, low/med/high/ping. Low if for batch oriented APIs (like recovery or
  * batch) with high payload that will cause regular request. (like search or single index) to take
  * longer. Med is for the typical search / single doc index. And High for things like cluster state. Ping is reserved for
@@ -101,6 +104,10 @@ public class Netty4Transport extends TcpTransport {
     private final int workerCount;
     private final ByteSizeValue receivePredictorMin;
     private final ByteSizeValue receivePredictorMax;
+    /**
+     * 每一个{@link ProfileSettings} 生成一个 ServerBootstrap
+     * 按{@link ProfileSettings#profileName}存放在此
+     */
     private final Map<String, ServerBootstrap> serverBootstraps = newConcurrentMap();
     private volatile Bootstrap clientBootstrap;
     private volatile NioEventLoopGroup eventLoopGroup;
@@ -129,8 +136,10 @@ public class Netty4Transport extends TcpTransport {
         try {
             ThreadFactory threadFactory = daemonThreadFactory(settings, TRANSPORT_WORKER_THREAD_NAME_PREFIX);
             eventLoopGroup = new NioEventLoopGroup(workerCount, threadFactory);
+            // 创建 client 的bootstrap
             clientBootstrap = createClientBootstrap(eventLoopGroup);
             if (NetworkService.NETWORK_SERVER.get(settings)) {
+                // 每一份配置生成一个serverBootstrap, 放进 : serverBootstraps.put(name, serverBootstrap);
                 for (ProfileSettings profileSettings : profileSettings) {
                     createServerBootstrap(profileSettings, eventLoopGroup);
                     bindServer(profileSettings);
@@ -145,6 +154,11 @@ public class Netty4Transport extends TcpTransport {
         }
     }
 
+    /**
+     * 创建worker bootstrap
+     *
+     * @return
+     */
     private Bootstrap createClientBootstrap(NioEventLoopGroup eventLoopGroup) {
         final Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(eventLoopGroup);
@@ -267,9 +281,15 @@ public class Netty4Transport extends TcpTransport {
 
         @Override
         protected void initChannel(Channel ch) throws Exception {
+            //注册负责记录log的handler，但是进入ESLoggingHandler具体实现
+            //可以看到其没有做日志记录操作，源码注释说明因为TcpTransport会做日志记录
             ch.pipeline().addLast("logging", new ESLoggingHandler());
+            //注册解码器，这里没有注册编码器因为编码是在TcpTransport实现的，
+            //需要发送的报文到达Channel已经是编码之后的格式了
             ch.pipeline().addLast("size", new Netty4SizeHeaderFrameDecoder());
             // using a dot as a prefix means this cannot come from any settings parsed
+            //负责对报文进行处理，主要识别是request还是response
+            //然后进行相应的处理
             ch.pipeline().addLast("dispatcher", new Netty4MessageChannelHandler(Netty4Transport.this));
         }
 

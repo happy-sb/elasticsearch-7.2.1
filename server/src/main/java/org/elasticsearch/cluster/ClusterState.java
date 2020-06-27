@@ -74,6 +74,7 @@ import java.util.stream.StreamSupport;
 import static org.elasticsearch.cluster.coordination.Coordinator.ZEN1_BWC_TERM;
 
 /**
+ * 集群状态, 主要由 Master_Node 来维护
  * Represents the current state of the cluster.
  * <p>
  * The cluster state object is immutable with the exception of the {@link RoutingNodes} structure, which is

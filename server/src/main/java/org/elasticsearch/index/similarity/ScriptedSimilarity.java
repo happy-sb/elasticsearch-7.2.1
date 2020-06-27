@@ -37,6 +37,10 @@ public final class ScriptedSimilarity extends Similarity {
     final String scriptSource;
     final SimilarityWeightScript.Factory weightScriptFactory;
     final SimilarityScript.Factory scriptFactory;
+
+    /**
+     * 计算长度加权因子时，是否对内容去重,默认false
+     */
     final boolean discountOverlaps;
 
     /** Sole constructor. */
@@ -54,8 +58,15 @@ public final class ScriptedSimilarity extends Similarity {
         return getClass().getSimpleName() + "(weightScript=[" + weightScriptSource + "], script=[" + scriptSource + "])";
     }
 
+    /**
+     * 计算属性的长度标准因子, 也就是标准化长度
+     *
+     * @param state
+     * @return
+     */
     @Override
     public long computeNorm(FieldInvertState state) {
+        // 如果去重, 则总长度- 重复词个数(positionIncrement == 0)
         final int numTerms = discountOverlaps ? state.getLength() - state.getNumOverlap() : state.getLength();
         return SmallFloat.intToByte4(numTerms);
     }

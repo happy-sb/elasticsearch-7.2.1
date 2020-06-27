@@ -23,6 +23,9 @@ import org.elasticsearch.cluster.ClusterState;
 
 import java.util.function.Supplier;
 
+/**
+ * 集群应用者
+ */
 public interface ClusterApplier {
     /**
      * Sets the initial state for this applier. Should only be called once.
@@ -31,6 +34,7 @@ public interface ClusterApplier {
     void setInitialState(ClusterState initialState);
 
     /**
+     * 集群状态变更时触发
      * Method to invoke when a new cluster state is available to be applied
      *
      * @param source information where the cluster state came from

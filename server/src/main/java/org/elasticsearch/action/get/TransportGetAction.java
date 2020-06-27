@@ -41,6 +41,7 @@ import java.io.IOException;
 
 /**
  * Performs the get operation.
+ * @see  org.elasticsearch.rest.action.document.RestGetAction
  */
 public class TransportGetAction extends TransportSingleShardAction<GetRequest, GetResponse> {
 
@@ -60,6 +61,13 @@ public class TransportGetAction extends TransportSingleShardAction<GetRequest, G
         return true;
     }
 
+    /**
+     * 有哪个分片要执行查询
+     *
+     * @param state
+     * @param request
+     * @return
+     */
     @Override
     protected ShardIterator shards(ClusterState state, InternalRequest request) {
         return clusterService.operationRouting()
@@ -69,6 +77,7 @@ public class TransportGetAction extends TransportSingleShardAction<GetRequest, G
 
     @Override
     protected void resolveRequest(ClusterState state, InternalRequest request) {
+        // 更新路由指引
         // update the routing (request#index here is possibly an alias)
         request.request().routing(state.metaData().resolveIndexRouting(request.request().routing(), request.request().index()));
         // Fail fast on the node that received the request.
@@ -94,15 +103,23 @@ public class TransportGetAction extends TransportSingleShardAction<GetRequest, G
         }
     }
 
+    /**
+     * 处理当前分片上的操作
+     *
+     * @param request
+     * @param shardId
+     * @return
+     */
     @Override
     protected GetResponse shardOperation(GetRequest request, ShardId shardId) {
         IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
+        // 获取索引分片
         IndexShard indexShard = indexService.getShard(shardId.id());
-
+        // 如果请求需要刷新且当前请求非实时的
         if (request.refresh() && !request.realtime()) {
             indexShard.refresh("refresh_flag_get");
         }
-
+        // 获取doc
         GetResult result = indexShard.getService().get(request.type(), request.id(), request.storedFields(),
                 request.realtime(), request.version(), request.versionType(), request.fetchSourceContext());
         return new GetResponse(result);

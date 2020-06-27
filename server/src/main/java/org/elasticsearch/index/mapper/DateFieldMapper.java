@@ -69,6 +69,9 @@ import static org.elasticsearch.common.time.DateUtils.toLong;
 public final class DateFieldMapper extends FieldMapper {
 
     public static final String CONTENT_TYPE = "date";
+    /**
+     * es处理时间的默认格式, 使用
+     */
     public static final DateFormatter DEFAULT_DATE_TIME_FORMATTER = DateFormatter.forPattern("strict_date_optional_time||epoch_millis");
 
     public static class Defaults {

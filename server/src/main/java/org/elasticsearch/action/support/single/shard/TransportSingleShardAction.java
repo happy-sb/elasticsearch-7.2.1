@@ -87,6 +87,7 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
         if (!isSubAction()) {
             transportService.registerRequestHandler(actionName, request, ThreadPool.Names.SAME, new TransportHandler());
         }
+        // 注册自身的action 以及对应的 handler
         transportService.registerRequestHandler(transportShardAction, request, ThreadPool.Names.SAME, new ShardTransportHandler());
     }
 
@@ -117,6 +118,12 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
 
     protected abstract Writeable.Reader<Response> getResponseReader();
 
+    /**
+     * 是否要解析索引
+     *
+     * @param request
+     * @return
+     */
     protected abstract boolean resolveIndex(Request request);
 
     protected ClusterBlockException checkGlobalBlock(ClusterState state) {
@@ -138,12 +145,28 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
     @Nullable
     protected abstract ShardsIterator shards(ClusterState state, InternalRequest request);
 
+    /**
+     * 异步的单个的Action
+     */
     class AsyncSingleAction {
 
         private final ActionListener<Response> listener;
+
+        /**
+         * 有哪些分片可能被使用
+         */
         private final ShardsIterator shardIt;
+
+        /**
+         *  请求及索引名称
+         */
         private final InternalRequest internalRequest;
+
+        /**
+         * 集群Nodes
+         */
         private final DiscoveryNodes nodes;
+
         private volatile Exception lastFailure;
 
         private AsyncSingleAction(Request request, ActionListener<Response> listener) {
@@ -160,7 +183,9 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
             }
 
             String concreteSingleIndex;
+            // 是否要解析索引
             if (resolveIndex(request)) {
+                // 解析具体的索引
                 concreteSingleIndex = indexNameExpressionResolver.concreteSingleIndex(clusterState, request).getName();
             } else {
                 concreteSingleIndex = request.index();
@@ -176,6 +201,9 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
             this.shardIt = shards(clusterState, internalRequest);
         }
 
+        /**
+         * 执行action
+         */
         public void start() {
             if (shardIt == null) {
                 // just execute it on the local node
@@ -215,6 +243,11 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
             perform(e);
         }
 
+        /**
+         * 执行请求
+         *
+         * @param currentFailure
+         */
         private void perform(@Nullable final Exception currentFailure) {
             Exception lastFailure = this.lastFailure;
             if (lastFailure == null || TransportActions.isReadOverrideException(currentFailure)) {
@@ -234,6 +267,8 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
                 listener.onFailure(failure);
                 return;
             }
+
+            // 找到分片所在的节点
             DiscoveryNode node = nodes.get(shardRouting.currentNodeId());
             if (node == null) {
                 onFailure(shardRouting, new NoShardAvailableActionException(shardRouting.shardId()));

@@ -41,6 +41,9 @@ import java.util.function.BiFunction;
 
 import static java.util.Collections.unmodifiableMap;
 
+/**
+ * JVM GC监视服务
+ */
 public class JvmGcMonitorService extends AbstractLifecycleComponent {
     private static final Logger logger = LogManager.getLogger(JvmGcMonitorService.class);
 
@@ -68,6 +71,9 @@ public class JvmGcMonitorService extends AbstractLifecycleComponent {
     public static final Setting<Integer> GC_OVERHEAD_DEBUG_SETTING =
         Setting.intSetting("monitor.jvm.gc.overhead.debug", 10, 0, 100, Property.NodeScope);
 
+    /**
+     * GC时间打印的日志级别，根据GC时间阈值来判断
+     */
     static class GcOverheadThreshold {
         final int warnThreshold;
         final int infoThreshold;
@@ -121,6 +127,7 @@ public class JvmGcMonitorService extends AbstractLifecycleComponent {
             TimeValue debug = getValidThreshold(entry.getValue(), entry.getKey(), "debug");
             gcThresholds.put(name, new GcThreshold(name, warn.millis(), info.millis(), debug.millis()));
         }
+        // Young GC, 时间 < 400ms, debug日志,  400ms< GC时间 < 700ms, info级别, GC时间 > 1000ms, warn级别
         gcThresholds.putIfAbsent(GcNames.YOUNG, new GcThreshold(GcNames.YOUNG, 1000, 700, 400));
         gcThresholds.putIfAbsent(GcNames.OLD, new GcThreshold(GcNames.OLD, 10000, 5000, 2000));
         gcThresholds.putIfAbsent("default", new GcThreshold("default", 10000, 5000, 2000));
@@ -205,6 +212,14 @@ public class JvmGcMonitorService extends AbstractLifecycleComponent {
     private static final String SLOW_GC_LOG_MESSAGE =
         "[gc][{}][{}][{}] duration [{}], collections [{}]/[{}], total [{}]/[{}], memory [{}]->[{}]/[{}], all_pools {}";
 
+    /**
+     * 打印慢GC时信息
+     * @param logger
+     * @param threshold
+     * @param seq
+     * @param slowGcEvent
+     * @param pools
+     */
     static void logSlowGc(
         final Logger logger,
         final JvmMonitor.Threshold threshold,

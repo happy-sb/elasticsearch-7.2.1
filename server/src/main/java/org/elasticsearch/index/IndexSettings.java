@@ -31,6 +31,7 @@ import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.translog.Translog;
+import org.elasticsearch.index.translog.Translog.Durability;
 import org.elasticsearch.ingest.IngestService;
 import org.elasticsearch.node.Node;
 
@@ -60,15 +61,28 @@ public final class IndexSettings {
         Setting.boolSetting("indices.query.query_string.allowLeadingWildcard", true, Property.NodeScope);
     public static final Setting<Boolean> ALLOW_UNMAPPED =
         Setting.boolSetting("index.query.parse.allow_unmapped_fields", true, Property.IndexScope);
+
+    /**
+     * 如果设置了translog是 async, 那么默认每5秒执行一次sync
+     */
     public static final Setting<TimeValue> INDEX_TRANSLOG_SYNC_INTERVAL_SETTING =
         Setting.timeSetting("index.translog.sync_interval", TimeValue.timeValueSeconds(5), TimeValue.timeValueMillis(100),
             Property.Dynamic, Property.IndexScope);
+
     public static final Setting<TimeValue> INDEX_SEARCH_IDLE_AFTER =
         Setting.timeSetting("index.search.idle.after", TimeValue.timeValueSeconds(30),
             TimeValue.timeValueMinutes(0), Property.IndexScope, Property.Dynamic);
+
+    /**
+     * translog配置, 默认每次请求
+     * translogs are synced for each high level request (bulk, index, delete)
+     * 也可以设置 {@link Durability#ASYNC} : 时间间隔
+     */
     public static final Setting<Translog.Durability> INDEX_TRANSLOG_DURABILITY_SETTING =
         new Setting<>("index.translog.durability", Translog.Durability.REQUEST.name(),
             (value) -> Translog.Durability.valueOf(value.toUpperCase(Locale.ROOT)), Property.Dynamic, Property.IndexScope);
+
+
     public static final Setting<Boolean> INDEX_WARMER_ENABLED_SETTING =
         Setting.boolSetting("index.warmer.enabled", true, Property.Dynamic, Property.IndexScope);
     public static final Setting<String> INDEX_CHECK_ON_STARTUP =

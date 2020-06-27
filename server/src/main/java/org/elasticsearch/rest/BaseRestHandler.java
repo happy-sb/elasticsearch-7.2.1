@@ -89,6 +89,7 @@ public abstract class BaseRestHandler implements RestHandler {
     @Override
     public final void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
         // prepare the request for execution; has the side effect of touching the request parameters
+        // 一般会返回一个lambda表达式,对RestChannelConsumer做一个函数式编程,重写其 accept(channel) 方法
         final RestChannelConsumer action = prepareRequest(request, client);
 
         // validate unconsumed params, but we must exclude params used to format the response

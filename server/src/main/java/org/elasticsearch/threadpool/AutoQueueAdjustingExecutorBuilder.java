@@ -35,7 +35,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadFactory;
 
-/**
+/** 自动增长任务队列的线程池构建器
  * A builder for executors that automatically adjust the queue length as needed, depending on
  * Little's Law. See https://en.wikipedia.org/wiki/Little's_law for more information.
  */

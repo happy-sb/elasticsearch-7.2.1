@@ -47,6 +47,8 @@ import java.util.Set;
 import static java.util.Collections.emptyMap;
 
 /**
+ * 一个分片id下的所有可路由分片列表
+ *
  * {@link IndexShardRoutingTable} encapsulates all instances of a single shard.
  * Each Elasticsearch index consists of multiple shards, each shard encapsulates
  * a disjoint set of the index data and each shard has one or more instances
@@ -56,12 +58,32 @@ import static java.util.Collections.emptyMap;
 public class IndexShardRoutingTable implements Iterable<ShardRouting> {
 
     final ShardShuffler shuffler;
+
+    /**
+     * 分片id
+     */
     final ShardId shardId;
 
     final ShardRouting primary;
+
+    /**
+     * 主分片, 当做一个集合
+     */
     final List<ShardRouting> primaryAsList;
+
+    /**
+     * 备用分片
+     */
     final List<ShardRouting> replicas;
+
+    /**
+     * 所有分片
+     */
     final List<ShardRouting> shards;
+
+    /**
+     * 分片里所有可用的primary和replica的集合
+     */
     final List<ShardRouting> activeShards;
     final List<ShardRouting> assignedShards;
     final Set<String> allAllocationIds;
@@ -77,6 +99,10 @@ public class IndexShardRoutingTable implements Iterable<ShardRouting> {
      */
     final List<ShardRouting> allInitializingShards;
 
+    /**
+     * @param shardId 分片id
+     * @param shards  此id下的primary和replica分片集合
+     */
     IndexShardRoutingTable(ShardId shardId, List<ShardRouting> shards) {
         this.shardId = shardId;
         this.shuffler = new RotationShardShuffler(Randomness.get().nextInt());
@@ -90,26 +116,32 @@ public class IndexShardRoutingTable implements Iterable<ShardRouting> {
         Set<String> allAllocationIds = new HashSet<>();
         boolean allShardsStarted = true;
         for (ShardRouting shard : shards) {
+            // primary replica 区分
             if (shard.primary()) {
                 primary = shard;
             } else {
                 replicas.add(shard);
             }
+            // 分片是否可用
             if (shard.active()) {
                 activeShards.add(shard);
             }
+            // 分片是不是正在初始化
             if (shard.initializing()) {
                 allInitializingShards.add(shard);
             }
+            // 分片是否在重定位
             if (shard.relocating()) {
                 // create the target initializing shard routing on the node the shard is relocating to
                 allInitializingShards.add(shard.getTargetRelocatingShard());
                 allAllocationIds.add(shard.getTargetRelocatingShard().allocationId().getId());
             }
+            // 分片是否指定在一个节点上
             if (shard.assignedToNode()) {
                 assignedShards.add(shard);
                 allAllocationIds.add(shard.allocationId().getId());
             }
+            // 不是所有分片都启动着的
             if (shard.state() != ShardRoutingState.STARTED) {
                 allShardsStarted = false;
             }
@@ -244,7 +276,9 @@ public class IndexShardRoutingTable implements Iterable<ShardRouting> {
      * its random within the active shards, and initializing shards are the last to iterate through.
      */
     public ShardIterator activeInitializingShardsIt(int seed) {
+        // 如果没有正在初始化的分片(备用)
         if (allInitializingShards.isEmpty()) {
+            // 返回一个旋转列表 RotatedList ,seed就是起始位置
             return new PlainShardIterator(shardId, shuffler.shuffle(activeShards, seed));
         }
         ArrayList<ShardRouting> ordered = new ArrayList<>(activeShards.size() + allInitializingShards.size());

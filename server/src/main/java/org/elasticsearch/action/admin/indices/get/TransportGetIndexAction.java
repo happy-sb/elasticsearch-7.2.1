@@ -45,6 +45,7 @@ import java.io.IOException;
 import java.util.List;
 
 /**
+ * 处理获取索引数据的请求
  * Get index action.
  */
 public class TransportGetIndexAction extends TransportClusterInfoAction<GetIndexRequest, GetIndexResponse> {

@@ -58,6 +58,7 @@ import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.rest.action.admin.indices.RestResizeHandler.RestSplitIndexAction;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -154,6 +155,10 @@ public class IndexMetaData implements Diffable<IndexMetaData>, ToXContentFragmen
     public static final Setting<Integer> INDEX_ROUTING_PARTITION_SIZE_SETTING =
             Setting.intSetting(SETTING_ROUTING_PARTITION_SIZE, 1, 1, Property.IndexScope);
 
+    /**
+     * 可以被拆分成几个索引, 比如原来主分片是3，此参数是2，那么hash时分片数是6。这样未来可以设置成6个主分片
+     * @see RestSplitIndexAction
+     */
     public static final Setting<Integer> INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING =
         Setting.intSetting("index.number_of_routing_shards", INDEX_NUMBER_OF_SHARDS_SETTING,
                            1, new Setting.Validator<Integer>() {
@@ -270,8 +275,20 @@ public class IndexMetaData implements Diffable<IndexMetaData>, ToXContentFragmen
     public static final String KEY_PRIMARY_TERMS = "primary_terms";
 
     public static final String INDEX_STATE_FILE_PREFIX = "state-";
+
+    /**
+     * 可路由的分片数目
+     */
     private final int routingNumShards;
+
+    /**
+     * 路由因子,默认1
+     */
     private final int routingFactor;
+
+    /**
+     * 可路由的分区数目
+     */
     private final int routingPartitionSize;
 
     private final int numberOfShards;

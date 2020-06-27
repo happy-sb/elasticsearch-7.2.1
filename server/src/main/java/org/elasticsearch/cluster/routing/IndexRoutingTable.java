@@ -48,6 +48,8 @@ import java.util.List;
 import java.util.Set;
 
 /**
+ * 一个索引下的所有分片，以及每个分片的primary 和replica 集合
+ *
  * The {@link IndexRoutingTable} represents routing information for a single
  * index. The routing table maintains a list of all shards in the index. A
  * single shard in this context has one more instances namely exactly one
@@ -69,6 +71,9 @@ public class IndexRoutingTable extends AbstractDiffable<IndexRoutingTable> imple
 
     // note, we assume that when the index routing is created, ShardRoutings are created for all possible number of
     // shards with state set to UNASSIGNED
+    /**
+     *  索引分片集合
+     */
     private final ImmutableOpenIntMap<IndexShardRoutingTable> shards;
 
     private final List<ShardRouting> allActiveShards;

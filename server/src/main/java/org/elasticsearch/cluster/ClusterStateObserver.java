@@ -34,6 +34,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
+ * 集群状态观察者
  * A utility class which simplifies interacting with the cluster state in cases where
  * one tries to take action based on the current state but may want to wait for a new state
  * and retry upon failure.
@@ -146,6 +147,8 @@ public class ClusterStateObserver {
                     // update to latest, in case people want to retry
                     timedOut = true;
                     lastObservedState.set(new StoredState(clusterApplierService.state()));
+
+                    // 监听器等待指定时间, 线程 wait
                     listener.onTimeout(timeOutValue);
                     return;
                 }
@@ -162,6 +165,8 @@ public class ClusterStateObserver {
         // sample a new state. This state maybe *older* than the supplied state if we are called from an applier,
         // which wants to wait for something else to happen
         ClusterState newState = clusterApplierService.state();
+
+        // 选举出Master
         if (lastObservedState.get().isOlderOrDifferentMaster(newState) && statePredicate.test(newState)) {
             // good enough, let's go.
             logger.trace("observer: sampled state accepted by predicate ({})", newState);
@@ -188,6 +193,8 @@ public class ClusterStateObserver {
                 return;
             }
             final ClusterState state = event.state();
+
+            // 选举出Master
             if (context.statePredicate.test(state)) {
                 if (observingContext.compareAndSet(context, null)) {
                     clusterApplierService.removeTimeoutListener(this);

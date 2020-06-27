@@ -48,10 +48,16 @@ public final class IngestActionForwarder implements ClusterStateApplier {
     }
 
     public void forwardIngestRequest(Action<?> action, ActionRequest request, ActionListener<?> listener) {
+        // 转发请求给ingest节点做数据预处理
         transportService.sendRequest(randomIngestNode(), action.name(), request,
             new ActionListenerResponseHandler(listener, action.getResponseReader()));
     }
 
+    /**
+     * 所及获取一个ingest节点
+     *
+     * @return
+     */
     private DiscoveryNode randomIngestNode() {
         final DiscoveryNode[] nodes = ingestNodes;
         if (nodes.length == 0) {

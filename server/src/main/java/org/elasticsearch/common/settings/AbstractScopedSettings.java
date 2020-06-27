@@ -60,10 +60,23 @@ public abstract class AbstractScopedSettings {
     private final Settings settings;
     private final List<SettingUpdater<?>> settingUpdaters = new CopyOnWriteArrayList<>();
     private final Map<String, Setting<?>> complexMatchers;
+
+    /**
+     * 配置的键值对信息
+     */
     private final Map<String, Setting<?>> keySettings;
     private final Map<Setting<?>, SettingUpgrader<?>> settingUpgraders;
+
+    /**
+     * 当前配置的作用域
+     */
     private final Setting.Property scope;
+
+    /**
+     * 优先匹配的配置, 如果不存在 从 {@link #settings} 里获取
+     */
     private Settings lastSettingsApplied;
+
 
     protected AbstractScopedSettings(
             final Settings settings,
@@ -110,6 +123,11 @@ public abstract class AbstractScopedSettings {
         }
     }
 
+    /**
+     * @param nodeSettings  Node级别的配置
+     * @param scopeSettings Index级别的配置
+     * @param other         实际级别的配置
+     */
     protected AbstractScopedSettings(Settings nodeSettings, Settings scopeSettings, AbstractScopedSettings other) {
         this.settings = nodeSettings;
         this.lastSettingsApplied = scopeSettings;
@@ -627,11 +645,19 @@ public abstract class AbstractScopedSettings {
         }
     }
 
+    /**
+     * 获取原始的配置
+     *
+     * @param key
+     * @return
+     */
     private Setting<?> getRaw(String key) {
+        // 从键值对里获取
         Setting<?> setting = keySettings.get(key);
         if (setting != null) {
             return setting;
         }
+        // 从匹配规则里获取
         for (Map.Entry<String, Setting<?>> entry : complexMatchers.entrySet()) {
             if (entry.getValue().match(key)) {
                 assert assertMatcher(key, 1);

@@ -94,6 +94,7 @@ public class ReplicationOperation<
     }
 
     public void execute() throws Exception {
+        // 确定要等待的replica的个数,如果校验不通过，返回错误信息
         final String activeShardCountFailure = checkActiveShardCount();
         final ShardRouting primaryRouting = primary.routingEntry();
         final ShardId primaryId = primaryRouting.shardId();
@@ -108,6 +109,9 @@ public class ReplicationOperation<
         primary.perform(request, ActionListener.wrap(this::handlePrimaryResult, resultListener::onFailure));
     }
 
+    /** 在主分片上执行请求
+     * @param primaryResult
+     */
     private void handlePrimaryResult(final PrimaryResultT primaryResult) {
         this.primaryResult = primaryResult;
         primary.updateLocalCheckpointForShard(primary.routingEntry().allocationId().getId(), primary.localCheckpoint());
@@ -146,6 +150,13 @@ public class ReplicationOperation<
         }
     }
 
+    /**
+     * replica上的数据同步请求
+     * @param replicaRequest
+     * @param globalCheckpoint
+     * @param maxSeqNoOfUpdatesOrDeletes
+     * @param replicationGroup
+     */
     private void performOnReplicas(final ReplicaRequest replicaRequest, final long globalCheckpoint,
                                    final long maxSeqNoOfUpdatesOrDeletes, final ReplicationGroup replicationGroup) {
         // for total stats, add number of unassigned shards and

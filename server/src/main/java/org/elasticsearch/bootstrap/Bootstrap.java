@@ -218,6 +218,7 @@ final class Bootstrap {
             throw new BootstrapException(e);
         }
 
+        // 实例化当前节点
         node = new Node(environment) {
             @Override
             protected void validateNodeBeforeAcceptingRequests(
@@ -251,6 +252,15 @@ final class Bootstrap {
         return keystore;
     }
 
+    /**
+     * 创建环境信息
+     *
+     * @param pidFile
+     * @param secureSettings
+     * @param initialSettings
+     * @param configPath
+     * @return
+     */
     private static Environment createEnvironment(
             final Path pidFile,
             final SecureSettings secureSettings,
@@ -269,6 +279,11 @@ final class Bootstrap {
                 () -> System.getenv("HOSTNAME"));
     }
 
+    /**
+     * 节点启动,保证存活线程启动
+     *
+     * @throws NodeValidationException
+     */
     private void start() throws NodeValidationException {
         node.start();
         keepAliveThread.start();
@@ -300,6 +315,7 @@ final class Bootstrap {
         // the security manager is installed
         BootstrapInfo.init();
 
+        // 实例化一个启动器，同时设置一个后台的 keepAliveThread 线程
         INSTANCE = new Bootstrap();
 
         final SecureSettings keystore = loadSecureSettings(initialEnv);
@@ -307,6 +323,7 @@ final class Bootstrap {
 
         LogConfigurator.setNodeName(Node.NODE_NAME_SETTING.get(environment.settings()));
         try {
+            // 设置日志级别,添加了从环境变量上通知logger.level来指定级别,比如: -Dlogger.level=DEBUG
             LogConfigurator.configure(environment);
         } catch (IOException e) {
             throw new BootstrapException(e);
@@ -346,6 +363,7 @@ final class Bootstrap {
             // setDefaultUncaughtExceptionHandler
             Thread.setDefaultUncaughtExceptionHandler(new ElasticsearchUncaughtExceptionHandler());
 
+            // 当前实例设置内置的Node
             INSTANCE.setup(true, environment);
 
             try {
@@ -354,7 +372,7 @@ final class Bootstrap {
             } catch (IOException e) {
                 throw new BootstrapException(e);
             }
-
+            // 启动es实例
             INSTANCE.start();
 
             if (closeStandardStreams) {

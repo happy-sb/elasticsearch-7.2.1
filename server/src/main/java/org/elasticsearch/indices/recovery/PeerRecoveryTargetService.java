@@ -76,6 +76,7 @@ import java.util.function.Consumer;
 import static org.elasticsearch.common.unit.TimeValue.timeValueMillis;
 
 /**
+ * 处理从source处获取的数据
  * The recovery target handles recoveries of peer shards of the shard+node to recover to.
  * <p>
  * Note, it can be safely assumed that there will only be a single recovery per shard (index+id) and
@@ -112,18 +113,31 @@ public class PeerRecoveryTargetService implements IndexEventListener {
         this.clusterService = clusterService;
         this.onGoingRecoveries = new RecoveriesCollection(logger, threadPool);
 
+        //负责接受处理Source端Shard快照文件
         transportService.registerRequestHandler(Actions.FILES_INFO, RecoveryFilesInfoRequest::new, ThreadPool.Names.GENERIC, new
                 FilesInfoRequestHandler());
+
+        //负责接受Source端发送的Shard文件块
         transportService.registerRequestHandler(Actions.FILE_CHUNK, RecoveryFileChunkRequest::new, ThreadPool.Names.GENERIC, new
                 FileChunkTransportRequestHandler());
+
+        //负责将接受到的Shard文件更改为正式文件
         transportService.registerRequestHandler(Actions.CLEAN_FILES, ThreadPool.Names.GENERIC,
             RecoveryCleanFilesRequest::new, new CleanFilesRequestHandler());
+
+        //负责打开Engine，准备接受Source端Translog进行日志重放
         transportService.registerRequestHandler(Actions.PREPARE_TRANSLOG, ThreadPool.Names.GENERIC,
                 RecoveryPrepareForTranslogOperationsRequest::new, new PrepareForTranslogOperationsRequestHandler());
+
+        //负责打开Engine，准备接受Source端Translog进行日志重放
         transportService.registerRequestHandler(Actions.TRANSLOG_OPS, ThreadPool.Names.GENERIC, RecoveryTranslogOperationsRequest::new,
             new TranslogOperationsRequestHandler());
+
+        //负责刷新Engine，让新的Segment生效，回收旧的文件，更新global checkpoint等
         transportService.registerRequestHandler(Actions.FINALIZE, RecoveryFinalizeRecoveryRequest::new, ThreadPool.Names.GENERIC, new
                 FinalizeRecoveryRequestHandler());
+
+        //如果是主分片relocate，则负责接受主分片身份
         transportService.registerRequestHandler(
                 Actions.HANDOFF_PRIMARY_CONTEXT,
                 RecoveryHandoffPrimaryContextRequest::new,

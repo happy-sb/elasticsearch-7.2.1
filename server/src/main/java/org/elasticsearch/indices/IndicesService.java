@@ -181,6 +181,9 @@ public class IndicesService extends AbstractLifecycleComponent
     private final TimeValue shardsClosedTimeout;
     private final AnalysisRegistry analysisRegistry;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
+    /**
+     * 索引级别的配置
+     */
     private final IndexScopedSettings indexScopedSettings;
     private final IndicesFieldDataCache indicesFieldDataCache;
     private final CacheCleaner cacheCleaner;
@@ -652,6 +655,19 @@ public class IndicesService extends AbstractLifecycleComponent
         }
     }
 
+    /**
+     * 创建分片
+     *
+     * @param shardRouting
+     * @param recoveryState
+     * @param recoveryTargetService
+     * @param recoveryListener
+     * @param repositoriesService
+     * @param onShardFailure
+     * @param globalCheckpointSyncer
+     * @return
+     * @throws IOException
+     */
     @Override
     public IndexShard createShard(
             final ShardRouting shardRouting,
@@ -665,8 +681,11 @@ public class IndicesService extends AbstractLifecycleComponent
         Objects.requireNonNull(retentionLeaseSyncer);
         ensureChangesAllowed();
         IndexService indexService = indexService(shardRouting.index());
+        // 创建分片
         IndexShard indexShard = indexService.createShard(shardRouting, globalCheckpointSyncer, retentionLeaseSyncer);
+        // 添加失回调函数
         indexShard.addShardFailureCallback(onShardFailure);
+        // 启动恢复备份
         indexShard.startRecovery(recoveryState, recoveryTargetService, recoveryListener, repositoriesService,
             (type, mapping) -> {
                 assert recoveryState.getRecoverySource().getType() == RecoverySource.Type.LOCAL_SHARDS:

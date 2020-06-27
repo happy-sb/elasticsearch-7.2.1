@@ -37,10 +37,33 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * 集群选举Master服务
+ */
 public class ElectMasterService {
 
     private static final Logger logger = LogManager.getLogger(ElectMasterService.class);
 
+
+    /**
+     * 1. 触发选主：进入选举临时的Master之前，参选的节点数需要达到法定人数。
+     * 2. 决定Master：选出临时的Master之后，得票数需要达到法定人数，才确认选主成功。
+     * 3. gateway选举元信息：向有Master资格的节点发起请求，获取元数据，获取的响应数量必须达到法定人数，也就是参与元信息选举的节点数。
+     * 4. Master发布集群状态：成功向节点发布集群状态信息的数量要达到法定人数。
+     * 5. NodesFaultDetection事件中是否触发rejoin：当发现有节点连不上时，会执行removeNode。接着审视此时的法定人数是否达标
+     * （discovery.zen.minimum_master_nodes），不达标就主动放弃Master身份执行rejoin以避免脑裂。
+     *
+     * Master扩容场景：目前有3个master_eligible_nodes，可以配置quorum为2。如果将master_eligible_nodes扩容到4个，那么quorum就要提高到3
+     * 。此时需要先把discovery.zen.minimum_master_nodes配置设置为3，再扩容Master节点。这个配置可以动态设置：
+     * PUT /_cluster/settings
+     * {
+     *  “persistent”: {
+     *      “discovery.zen.minimum_master_nodes”: 3
+     *  }
+     * }
+     * Master减容场景：缩容与扩容是完全相反的流程，需要先缩减Master节点，再把quorum数降低。
+     * 修改Master以及集群相关的配置一定要非常谨慎！配置错误很有可能导致脑裂，甚至数据写坏、数据丢失等场景。
+     */
     public static final Setting<Integer> DISCOVERY_ZEN_MINIMUM_MASTER_NODES_SETTING =
         Setting.intSetting("discovery.zen.minimum_master_nodes", -1, Property.Dynamic, Property.NodeScope, Property.Deprecated);
 
@@ -56,6 +79,9 @@ public class ElectMasterService {
 
         final DiscoveryNode node;
 
+        /**
+         * 集群状态版本
+         */
         final long clusterStateVersion;
 
         public MasterCandidate(DiscoveryNode node, long clusterStateVersion) {
@@ -83,6 +109,7 @@ public class ElectMasterService {
         }
 
         /**
+         * 对比两个节点的集群状态版本,有限选择版本低的那个
          * compares two candidates to indicate which the a better master.
          * A higher cluster state version is better
          *
@@ -135,13 +162,16 @@ public class ElectMasterService {
     }
 
     /**
+     * 选举Master
      * Elects a new master out of the possible nodes, returning it. Returns {@code null}
      * if no master has been elected.
      */
     public MasterCandidate electMaster(Collection<MasterCandidate> candidates) {
         assert hasEnoughCandidates(candidates);
         List<MasterCandidate> sortedCandidates = new ArrayList<>(candidates);
+        // 将所有节点按集群状态由低到高排序
         sortedCandidates.sort(MasterCandidate::compare);
+        // 选择版本最低的作为集群Master
         return sortedCandidates.get(0);
     }
 

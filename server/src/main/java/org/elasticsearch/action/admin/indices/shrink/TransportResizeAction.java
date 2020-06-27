@@ -95,19 +95,25 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
                                    final ActionListener<ResizeResponse> listener) {
 
         // there is no need to fetch docs stats for split but we keep it simple and do it anyway for simplicity of the code
+        // 原始索引
         final String sourceIndex = indexNameExpressionResolver.resolveDateMathExpression(resizeRequest.getSourceIndex());
+        // 目标索引
         final String targetIndex = indexNameExpressionResolver.resolveDateMathExpression(resizeRequest.getTargetIndexRequest().index());
+
         client.admin().indices().prepareStats(sourceIndex).clear().setDocs(true).execute(
             ActionListener.delegateFailure(listener, (delegatedListener, indicesStatsResponse) -> {
+
                 CreateIndexClusterStateUpdateRequest updateRequest = prepareCreateIndexRequest(resizeRequest, state,
                     i -> {
                         IndexShardStats shard = indicesStatsResponse.getIndex(sourceIndex).getIndexShards().get(i);
                         return shard == null ? null : shard.getPrimary().getDocs();
                     }, sourceIndex, targetIndex);
+
                 createIndexService.createIndex(
                     updateRequest, ActionListener.map(delegatedListener,
                         response -> new ResizeResponse(response.isAcknowledged(), response.isShardsAcknowledged(), updateRequest.index()))
                 );
+
             }));
 
     }

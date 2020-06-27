@@ -58,6 +58,10 @@ public class JvmStats implements Writeable, ToXContentFragment {
         classLoadingMXBean = ManagementFactory.getClassLoadingMXBean();
     }
 
+    /**
+     * 生成JVM统计信息
+     * @return
+     */
     public static JvmStats jvmStats() {
         MemoryUsage memUsage = memoryMXBean.getHeapMemoryUsage();
         long heapUsed = memUsage.getUsed() < 0 ? 0 : memUsage.getUsed();

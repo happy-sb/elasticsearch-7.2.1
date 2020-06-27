@@ -35,14 +35,82 @@ import java.util.List;
 import static org.elasticsearch.rest.RestRequest.Method.GET;
 import static org.elasticsearch.rest.RestRequest.Method.POST;
 
+/**
+ * 分析请求, 查看ES如何对查询参数做分词
+ *
+ * 使用哪个索引的哪个Field的映射来分词
+ * http://localhost:9200/lanboal/_analyze POST
+ * {
+ * "field": "text",
+ * "analyzer": "standard",
+ * "text": "Eating an apple a day keeps doctor away"
+ * }
+ *
+ * settings配置, 含有索引里可能用到的一些信息，比如多个分析器, 索引内不同的field可以使用不同的分析器
+ * {
+ *     "settings": {
+ *         "analysis": {
+ *             "char_filter": {
+ *                 "&_to_and": {
+ *                     "type":       "mapping",
+ *                     "mappings": [ "&=> and "]
+ *             }},
+ *             "filter": {
+ *                 "my_stopwords": {
+ *                     "type":       "stop",
+ *                     "stopwords": [ "the", "a" ]
+ *             }},
+ *             "analyzer": {
+ *                 "my_analyzer": {
+ *                     "type":         "custom",
+ *                     "char_filter":  [ "html_strip", "&_to_and" ],
+ *                     "tokenizer":    "standard",
+ *                     "filter":       [ "lowercase", "my_stopwords" ]
+ *             }}
+ * }}}
+ *
+ * 请求解析：http://localhost:9200/my_index/_analyze  POST
+ *
+ * {
+ * 	"analyzer": "my_analyzer",
+ * 	"text":"The quick & brown fox"
+ * }
+ *
+ * 使用分析器： http://localhost:9200/my_index/_mapping/my_type  PUT
+ *
+ * {
+ *     "properties": {
+ *         "title": {
+ *             "type":      "string",
+ *             "analyzer":  "my_analyzer"
+ *         }
+ *     }
+ * }
+ *
+ */
 public class RestAnalyzeAction extends BaseRestHandler {
 
     public static class Fields {
+        /**
+         * 分析器, 先执行字符过滤器(注意是字符, 不是词, 主要是处理字符的)char_filter, 然后分词tokenizer, 最后过滤filter,主要是处理词的
+         */
         public static final ParseField ANALYZER = new ParseField("analyzer");
         public static final ParseField TEXT = new ParseField("text");
         public static final ParseField FIELD = new ParseField("field");
+
+        /**
+         * 分词器
+         */
         public static final ParseField TOKENIZER = new ParseField("tokenizer");
+
+        /**
+         * 标记过滤器, 比如去除停顿词, 大小写转换, 词根转换
+         */
         public static final ParseField TOKEN_FILTERS = new ParseField("filter");
+
+        /**
+         * 字符过滤器, 比如 & => and 转换
+         */
         public static final ParseField CHAR_FILTERS = new ParseField("char_filter");
         public static final ParseField EXPLAIN = new ParseField("explain");
         public static final ParseField ATTRIBUTES = new ParseField("attributes");

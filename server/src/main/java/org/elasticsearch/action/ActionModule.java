@@ -341,6 +341,7 @@ import java.util.stream.Stream;
 import static java.util.Collections.unmodifiableMap;
 
 /**
+ * Tcp/Ip  9300 端口的Action,不是Http Rest请求的
  * Builds and binds the generic action map, all {@link TransportAction}s, and {@link ActionFilters}.
  */
 public class ActionModule extends AbstractModule {
@@ -354,10 +355,17 @@ public class ActionModule extends AbstractModule {
     private final ClusterSettings clusterSettings;
     private final SettingsFilter settingsFilter;
     private final List<ActionPlugin> actionPlugins;
+    /**
+     * 所有的action和其rest url的映射
+     */
     private final Map<String, ActionHandler<?, ?>> actions;
     private final ActionFilters actionFilters;
     private final AutoCreateIndex autoCreateIndex;
     private final DestructiveOperations destructiveOperations;
+
+    /**
+     * 所有action的入口
+     */
     private final RestController restController;
     private final TransportPutMappingAction.RequestValidators mappingRequestValidators;
 
@@ -395,6 +403,7 @@ public class ActionModule extends AbstractModule {
             actionPlugins.stream().flatMap(p -> p.mappingRequestValidators().stream()).collect(Collectors.toList())
         );
 
+        // 如果是传输客户端,则不设置rest风格的处理器, Node里是false
         if (transportClient) {
             restController = null;
         } else {
@@ -407,6 +416,12 @@ public class ActionModule extends AbstractModule {
         return actions;
     }
 
+    /**
+     * 设置action,将他们注册到集合中
+     *
+     * @param actionPlugins
+     * @return
+     */
     static Map<String, ActionHandler<?, ?>> setupActions(List<ActionPlugin> actionPlugins) {
         // Subclass NamedRegistry for easy registration
         class ActionRegistry extends NamedRegistry<ActionHandler<?, ?>> {

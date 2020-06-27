@@ -52,18 +52,40 @@ public class GetRequest extends SingleShardRequest<GetRequest> implements Realti
 
     private String type;
     private String id;
+    /**
+     * 制定路由
+     */
     private String routing;
+    /**
+     * 优先哪个节点 "_local":当前节点;  "_primary":主节点
+     */
     private String preference;
 
+    /**
+     * 查询那些Field, 默认情况下整个source都会返回
+     */
     private String[] storedFields;
 
     private FetchSourceContext fetchSourceContext;
 
+    /**
+     * 是否刷新Lucene
+     */
     private boolean refresh = false;
 
+    /**
+     * 是否实时
+     */
     boolean realtime = true;
 
+    /**
+     * 版本类型
+     */
     private VersionType versionType = VersionType.INTERNAL;
+
+    /**
+     * 数据版本, 可做多版本并发控制
+     */
     private long version = Versions.MATCH_ANY;
 
     public GetRequest() {

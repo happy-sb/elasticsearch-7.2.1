@@ -59,6 +59,9 @@ import java.util.concurrent.TimeUnit;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 
+/**
+ * 分片上Get数据的Service
+ */
 public final class ShardGetService extends AbstractIndexShardComponent {
     private final MapperService mapperService;
     private final MeanMetric existsMetric = new MeanMetric();
@@ -80,10 +83,22 @@ public final class ShardGetService extends AbstractIndexShardComponent {
 
     public GetResult get(String type, String id, String[] gFields, boolean realtime, long version,
                             VersionType versionType, FetchSourceContext fetchSourceContext) {
-        return
+        return   // 不从translog 里读取数据
             get(type, id, gFields, realtime, version, versionType, UNASSIGNED_SEQ_NO, UNASSIGNED_PRIMARY_TERM, fetchSourceContext, false);
     }
 
+    /**
+     * 查询数据
+     *
+     * @param type               索引类型
+     * @param id                 docId
+     * @param gFields            查询那些Field
+     * @param realtime           是否实时
+     * @param version
+     * @param versionType
+     * @param fetchSourceContext
+     * @return
+     */
     private GetResult get(String type, String id, String[] gFields, boolean realtime, long version, VersionType versionType,
                           long ifSeqNo, long ifPrimaryTerm, FetchSourceContext fetchSourceContext, boolean readFromTranslog) {
         currentMetric.inc();
@@ -155,6 +170,19 @@ public final class ShardGetService extends AbstractIndexShardComponent {
         return FetchSourceContext.DO_NOT_FETCH_SOURCE;
     }
 
+    /**
+     * 查询数据
+     *
+     * @param type
+     * @param id
+     * @param gFields
+     * @param realtime
+     * @param version
+     * @param versionType
+     * @param fetchSourceContext
+     * @param readFromTranslog
+     * @return
+     */
     private GetResult innerGet(String type, String id, String[] gFields, boolean realtime, long version, VersionType versionType,
                                long ifSeqNo, long ifPrimaryTerm, FetchSourceContext fetchSourceContext, boolean readFromTranslog) {
         fetchSourceContext = normalizeFetchSourceContent(fetchSourceContext, gFields);

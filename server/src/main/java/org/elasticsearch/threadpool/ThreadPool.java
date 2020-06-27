@@ -60,10 +60,16 @@ import java.util.stream.Collectors;
 
 import static java.util.Collections.unmodifiableMap;
 
+/**
+ * 线程池,针对每个组件都定义相应的线程池
+ */
 public class ThreadPool implements Scheduler, Closeable {
 
     private static final Logger logger = LogManager.getLogger(ThreadPool.class);
 
+    /**
+     * 组件名称
+     */
     public static class Names {
         public static final String SAME = "same";
         public static final String GENERIC = "generic";
@@ -85,8 +91,23 @@ public class ThreadPool implements Scheduler, Closeable {
 
     public enum ThreadPoolType {
         DIRECT("direct"),
+
+        /**
+         * {@link FixedExecutorBuilder}
+         * 固定线程数和任务队列的线程池
+         */
         FIXED("fixed"),
+
+        /**
+         * {@link AutoQueueAdjustingExecutorBuilder}
+         * 固定线程数,但能自动缩放任务队列的线程池
+         */
         FIXED_AUTO_QUEUE_SIZE("fixed_auto_queue_size"),
+
+        /**
+         * 线程数目有core和max的线程池
+         * {@link ScalingExecutorBuilder }
+         */
         SCALING("scaling");
 
         private final String type;
@@ -141,6 +162,9 @@ public class ThreadPool implements Scheduler, Closeable {
         THREAD_POOL_TYPES = Collections.unmodifiableMap(map);
     }
 
+    /**
+     * {@link Names} 里每个组件及其相应的线程池持有者
+     */
     private final Map<String, ExecutorHolder> executors;
 
     private final ThreadPoolInfo threadPoolInfo;
@@ -151,6 +175,9 @@ public class ThreadPool implements Scheduler, Closeable {
 
     private final ThreadContext threadContext;
 
+    /**
+     * {@link Names} 里每个组件及其相应的线程池构建器
+     */
     private final Map<String, ExecutorBuilder> builders;
 
     private final ScheduledThreadPoolExecutor scheduler;
@@ -167,10 +194,16 @@ public class ThreadPool implements Scheduler, Closeable {
         assert Node.NODE_NAME_SETTING.exists(settings);
 
         final Map<String, ExecutorBuilder> builders = new HashMap<>();
+        // 可用核心数目,取物理核心数量
         final int availableProcessors = EsExecutors.numberOfProcessors(settings);
+        // 取 核心数+1 /2 与 5的较小值
         final int halfProcMaxAt5 = halfNumberOfProcessorsMaxFive(availableProcessors);
+        // 取 核心数+1 /2 与 10的较小值
         final int halfProcMaxAt10 = halfNumberOfProcessorsMaxTen(availableProcessors);
+        // 线程池最大线程数，取 128与4倍核心数的较大值,但不大于 512
         final int genericThreadPoolMax = boundedBy(4 * availableProcessors, 128, 512);
+
+        // 针对所有功能设置不同的线程池,不同的参数
         builders.put(Names.GENERIC, new ScalingExecutorBuilder(Names.GENERIC, 4, genericThreadPoolMax, TimeValue.timeValueSeconds(30)));
         builders.put(Names.WRITE, new FixedExecutorBuilder(settings, Names.WRITE, availableProcessors, 200));
         builders.put(Names.GET, new FixedExecutorBuilder(settings, Names.GET, availableProcessors, 1000));

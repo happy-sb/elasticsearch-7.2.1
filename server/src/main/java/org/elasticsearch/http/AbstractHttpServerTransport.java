@@ -132,12 +132,15 @@ public abstract class AbstractHttpServerTransport extends AbstractLifecycleCompo
         // Bind and start to accept incoming connections.
         InetAddress hostAddresses[];
         try {
+            // /127.0.0.1  /0:0:0:0:0:0:0:1
             hostAddresses = networkService.resolveBindHostAddresses(bindHosts);
         } catch (IOException e) {
             throw new BindHttpException("Failed to resolve host [" + Arrays.toString(bindHosts) + "]", e);
         }
 
         List<TransportAddress> boundAddresses = new ArrayList<>(hostAddresses.length);
+
+        // 添加 /127.0.0.1：9200  /0:0:0:0:0:0:0:1：9200
         for (InetAddress address : hostAddresses) {
             boundAddresses.add(bindAddress(address));
         }
@@ -151,6 +154,8 @@ public abstract class AbstractHttpServerTransport extends AbstractLifecycleCompo
 
         final int publishPort = resolvePublishPort(settings, boundAddresses, publishInetAddress);
         TransportAddress publishAddress = new TransportAddress(new InetSocketAddress(publishInetAddress, publishPort));
+
+        // 127.0.0.1:9200  [::1]:9200
         this.boundAddress = new BoundTransportAddress(boundAddresses.toArray(new TransportAddress[0]), publishAddress);
         logger.info("{}", boundAddress);
     }
@@ -315,8 +320,10 @@ public abstract class AbstractHttpServerTransport extends AbstractLifecycleCompo
         final ThreadContext threadContext = threadPool.getThreadContext();
         try (ThreadContext.StoredContext ignore = threadContext.stashContext()) {
             if (badRequestCause != null) {
+                // 转发处理不正常请求
                 dispatcher.dispatchBadRequest(restRequest, channel, threadContext, badRequestCause);
             } else {
+                // RestController转发请求
                 dispatcher.dispatchRequest(restRequest, channel, threadContext);
             }
         }

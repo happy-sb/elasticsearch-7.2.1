@@ -84,6 +84,7 @@ public abstract class Command implements Closeable {
             Runtime.getRuntime().addShutdownHook(shutdownHookThread);
         }
 
+        // 从执行命令里获取参数
         beforeMain.run();
 
         try {

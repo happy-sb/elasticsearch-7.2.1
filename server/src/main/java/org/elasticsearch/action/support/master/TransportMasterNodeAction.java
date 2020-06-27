@@ -53,6 +53,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
+ * Master节点处理请求
  * A base class for operations that needs to be performed on the master node.
  */
 public abstract class TransportMasterNodeAction<Request extends MasterNodeRequest<Request>, Response extends ActionResponse>
@@ -135,6 +136,7 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
 
     @Override
     protected void doExecute(Task task, final Request request, ActionListener<Response> listener) {
+        // 每收到一个请求,启动一个异步的单独的action来处理
         new AsyncSingleAction(task, request, listener).start();
     }
 
@@ -154,8 +156,13 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
             this.listener = listener;
         }
 
+        /**
+         * master开始处理请求
+         */
         public void start() {
+            // 集群状态
             ClusterState state = clusterService.state();
+            // 集群观察者
             this.observer
                 = new ClusterStateObserver(state, clusterService, request.masterNodeTimeout(), logger, threadPool.getThreadContext());
             doStart(state);
@@ -165,6 +172,7 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
             try {
                 final Predicate<ClusterState> masterChangePredicate = MasterNodeChangePredicate.build(clusterState);
                 final DiscoveryNodes nodes = clusterState.nodes();
+                // 当前节点不是master || 本地执行请求
                 if (nodes.isLocalNodeElectedMaster() || localExecute(request)) {
                     // check for block, if blocked, retry, else, execute locally
                     final ClusterBlockException blockException = checkBlock(request, clusterState);
@@ -201,13 +209,20 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
                             }
                         });
                     }
-                } else {
+                }
+
+                // 当前节点不是Master, 且也不是本地请求
+                else {
                     if (nodes.getMasterNode() == null) {
                         logger.debug("no known master node, scheduling a retry");
                         retry(null, masterChangePredicate);
                     } else {
+                        // 获取Master节点
                         DiscoveryNode masterNode = nodes.getMasterNode();
+                        // 当前action名称
                         final String actionName = getMasterActionName(masterNode);
+
+                        // 转发请求至Master
                         transportService.sendRequest(masterNode, actionName, request,
                             new ActionListenerResponseHandler<Response>(listener, TransportMasterNodeAction.this::read) {
                                 @Override

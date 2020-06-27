@@ -246,6 +246,7 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
 
     @Override
     protected void doStart() {
+        // 当前节点
         DiscoveryNode localNode = transportService.getLocalNode();
         assert localNode != null;
         synchronized (stateMutex) {
@@ -253,6 +254,8 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
             assert committedState.get() == null;
             assert localNode != null;
             ClusterState.Builder builder = ClusterState.builder(clusterName);
+
+            // 初始化集群状态, 随机生成uuid
             ClusterState initialState = builder
                 .blocks(ClusterBlocks.builder()
                     .addGlobalBlock(STATE_NOT_RECOVERED_BLOCK)
@@ -260,6 +263,7 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
                 .nodes(DiscoveryNodes.builder().add(localNode).localNodeId(localNode.getId()))
                 .build();
             committedState.set(initialState);
+            // 设置集群服务的初始化状态
             clusterApplier.setInitialState(initialState);
             nodesFD.setLocalNode(localNode);
             joinThreadControl.start();
@@ -322,6 +326,12 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
         return clusterState;
     }
 
+    /**
+     * 发布所有变更信息给节点
+     *
+     * @param clusterChangedEvent
+     * @param ackListener
+     */
     @Override
     public void publish(ClusterChangedEvent clusterChangedEvent, ActionListener<Void> publishListener, AckListener ackListener) {
         ClusterState newState = clusterChangedEvent.state();
@@ -336,6 +346,7 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
 
             pendingStatesQueue.addPending(newState);
 
+            //  向所有参与了集群选举的节点发布集群状态
             publishClusterState.publish(clusterChangedEvent, electMaster.minimumMasterNodes(), ackListener);
         } catch (FailedToCommitClusterStateException t) {
             // cluster service logs a WARN message
@@ -429,6 +440,7 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
     }
 
     /**
+     * 加入集群
      * the main function of a join thread. This function is guaranteed to join the cluster
      * or spawn a new join thread upon failure to do so.
      */
@@ -437,6 +449,9 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
         final Thread currentThread = Thread.currentThread();
         nodeJoinController.startElectionContext();
         while (masterNode == null && joinThreadControl.joinThreadActive(currentThread)) {
+
+            // 找到Master, 可能为空，比如集群刚启动,节点数未满足选举的最小数
+            // 如果集群只有一个Node, 那么将自身作为Master
             masterNode = findMaster();
         }
 
@@ -445,9 +460,12 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
             return;
         }
 
+        // 如果当前节点被选举为master节点
         if (transportService.getLocalNode().equals(masterNode)) {
             final int requiredJoins = Math.max(0, electMaster.minimumMasterNodes() - 1); // we count as one
             logger.debug("elected as master, waiting for incoming joins ([{}] needed)", requiredJoins);
+
+            // 需要等待其他的Node来join
             nodeJoinController.waitToBeElectedAsMaster(requiredJoins, masterElectionWaitForJoinsTimeout,
                     new NodeJoinController.ElectionCallback() {
                         @Override
@@ -799,8 +817,14 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
         }
     }
 
+    /**
+     * 找到集群中的master
+     *
+     * @return
+     */
     private DiscoveryNode findMaster() {
         logger.trace("starting to ping");
+        // 获取和所有节点的ping通信
         List<ZenPing.PingResponse> fullPingResponses = pingAndWait(pingTimeout).toList();
         if (fullPingResponses == null) {
             logger.trace("No full ping responses");
@@ -818,12 +842,14 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
             logger.trace("full ping responses:{}", sb);
         }
 
+        // 当前节点
         final DiscoveryNode localNode = transportService.getLocalNode();
 
         // add our selves
         assert fullPingResponses.stream().map(ZenPing.PingResponse::node)
             .filter(n -> n.equals(localNode)).findAny().isPresent() == false;
 
+        // 把本地节点加入, 一般Node有Maste，Data, Injest 三种角色
         fullPingResponses.add(new ZenPing.PingResponse(localNode, null, this.clusterState()));
 
         // filter responses
@@ -841,13 +867,19 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
         // nodes discovered during pinging
         List<ElectMasterService.MasterCandidate> masterCandidates = new ArrayList<>();
         for (ZenPing.PingResponse pingResponse : pingResponses) {
+            // 如果某个节点被指定了master角色,当前节点也是Master角色之一
             if (pingResponse.node().isMasterNode()) {
                 masterCandidates.add(new ElectMasterService.MasterCandidate(pingResponse.node(), pingResponse.getClusterStateVersion()));
             }
         }
 
+        // 如果生效的master不存在, 也就是集群刚启动, 还在选举master
         if (activeMasters.isEmpty()) {
+            // 是否有足够的master角色来选举新的master, 就是master角色节点数 >= DISCOVERY_ZEN_MINIMUM_MASTER_NODES_SETTING, 默认值-1
             if (electMaster.hasEnoughCandidates(masterCandidates)) {
+
+                //  将所有节点按集群状态由低到高排序, 取状态版本最低的节点作为master
+                // 如果集群只有一个Node, 那么启动时就将自身作为Master
                 final ElectMasterService.MasterCandidate winner = electMaster.electMaster(masterCandidates);
                 logger.trace("candidate {} won election", winner);
                 return winner.getNode();
@@ -857,7 +889,9 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
                             masterCandidates, electMaster.minimumMasterNodes());
                 return null;
             }
-        } else {
+        }
+        //当前状态有正常存在的Master
+        else {
             assert !activeMasters.contains(localNode) :
                 "local node should never be elected as master when other nodes indicate an active master";
             // lets tie break between discovered nodes
@@ -865,9 +899,18 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
         }
     }
 
+    /**
+     * 是否要过滤其他节点的response
+     *
+     * @param fullPingResponses
+     * @param masterElectionIgnoreNonMasters {@link #masterElectionIgnoreNonMasters} 默认 false
+     * @param logger
+     * @return
+     */
     static List<ZenPing.PingResponse> filterPingResponses(List<ZenPing.PingResponse> fullPingResponses,
                                                           boolean masterElectionIgnoreNonMasters, Logger logger) {
         List<ZenPing.PingResponse> pingResponses;
+        // 是否过滤非master资格的节点
         if (masterElectionIgnoreNonMasters) {
             pingResponses = fullPingResponses.stream().filter(ping -> ping.node().isMasterNode()).collect(Collectors.toList());
         } else {

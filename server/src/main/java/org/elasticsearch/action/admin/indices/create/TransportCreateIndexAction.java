@@ -43,6 +43,7 @@ public class TransportCreateIndexAction extends TransportMasterNodeAction<Create
     public TransportCreateIndexAction(TransportService transportService, ClusterService clusterService,
                                       ThreadPool threadPool, MetaDataCreateIndexService createIndexService,
                                       ActionFilters actionFilters, IndexNameExpressionResolver indexNameExpressionResolver) {
+        // 指定处理action名称为  "indices:admin/create" 的请求
         super(CreateIndexAction.NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver,
             CreateIndexRequest::new);
         this.createIndexService = createIndexService;
@@ -64,6 +65,13 @@ public class TransportCreateIndexAction extends TransportMasterNodeAction<Create
         return state.blocks().indexBlockedException(ClusterBlockLevel.METADATA_WRITE, request.index());
     }
 
+    /**
+     * master操作
+     *
+     * @param request
+     * @param state
+     * @param listener
+     */
     @Override
     protected void masterOperation(final CreateIndexRequest request, final ClusterState state,
                                    final ActionListener<CreateIndexResponse> listener) {

@@ -52,6 +52,7 @@ final class TransportProxyClient {
     public <Request extends ActionRequest, Response extends ActionResponse, RequestBuilder extends
         ActionRequestBuilder<Request, Response>> void execute(final Action<Response> action,
                                                                               final Request request, ActionListener<Response> listener) {
+        // 根据action名称获取对应处理的Action,比如 indices:admin/create 对应 TransportCreateIndexAction
         final TransportActionNodeProxy<Request, Response> proxy = proxies.get(action);
         assert proxy != null : "no proxy found for action: " + action;
         nodesService.execute((n, l) -> proxy.execute(n, request, l), listener);

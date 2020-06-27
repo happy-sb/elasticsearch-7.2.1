@@ -78,6 +78,10 @@ public class DiscoveryNode implements Writeable, ToXContentFragment {
     private final TransportAddress address;
     private final Map<String, String> attributes;
     private final Version version;
+
+    /**
+     * 当前节点的角色标识
+     */
     private final Set<Role> roles;
 
 

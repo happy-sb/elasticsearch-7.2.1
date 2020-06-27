@@ -331,6 +331,14 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         }
     }
 
+    /**
+     * 创建分片
+     *
+     * @param routing
+     * @param globalCheckpointSyncer
+     * @return
+     * @throws IOException
+     */
     public synchronized IndexShard createShard(
             final ShardRouting routing,
             final Consumer<ShardId> globalCheckpointSyncer,
@@ -687,6 +695,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                             "[{}] failed to notify shard about setting change", shard.shardId().id()), e);
                 }
             }
+            // 更新索引refresh间隔
             if (refreshTask.getInterval().equals(indexSettings.getRefreshInterval()) == false) {
                 // once we change the refresh interval we schedule yet another refresh
                 // to ensure we are in a clean and predictable state.
@@ -725,6 +734,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                 fsyncTask = null;
             }
         } else if (fsyncTask == null) {
+            // 如果不是按高层级请求来执行的，那么需要一个定时的持久化任务
             fsyncTask = new AsyncTranslogFSync(this);
         } else {
             fsyncTask.updateIfNeeded();
@@ -735,6 +745,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         try {
             refreshTask.close();
         } finally {
+            // 重启一个刷新任务
             refreshTask = new AsyncRefreshTask(this);
         }
     }

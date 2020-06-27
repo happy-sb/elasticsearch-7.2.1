@@ -416,13 +416,19 @@ public class MetaData implements Iterable<IndexMetaData>, Diffable<MetaData>, To
         boolean isAllTypes = isAllTypes(types);
         ImmutableOpenMap.Builder<String, ImmutableOpenMap<String, MappingMetaData>> indexMapBuilder = ImmutableOpenMap.builder();
         Iterable<String> intersection = HppcMaps.intersection(ObjectHashSet.from(concreteIndices), indices.keys());
+
+        // 遍历索引
         for (String index : intersection) {
             IndexMetaData indexMetaData = indices.get(index);
+
+            // 可能有些属性要过滤
             Predicate<String> fieldPredicate = fieldFilter.apply(index);
             if (isAllTypes) {
                 indexMapBuilder.put(index, filterFields(indexMetaData.getMappings(), fieldPredicate));
             } else {
                 ImmutableOpenMap.Builder<String, MappingMetaData> filteredMappings = ImmutableOpenMap.builder();
+
+                // 一个Index可能有多个type, 获取指定的type
                 for (ObjectObjectCursor<String, MappingMetaData> cursor : indexMetaData.getMappings()) {
                     if (Regex.simpleMatch(types, cursor.key)) {
                         filteredMappings.put(cursor.key, filterFields(cursor.value, fieldPredicate));
@@ -577,6 +583,7 @@ public class MetaData implements Iterable<IndexMetaData>, Diffable<MetaData>, To
     }
 
     /**
+     * 解析实际的路由信息
      * Returns indexing routing for the given index.
      */
     // TODO: This can be moved to IndexNameExpressionResolver too, but this means that we will support wildcards and other expressions

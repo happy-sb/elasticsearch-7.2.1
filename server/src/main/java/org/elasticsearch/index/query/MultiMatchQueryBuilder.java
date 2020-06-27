@@ -101,17 +101,24 @@ public class MultiMatchQueryBuilder extends AbstractQueryBuilder<MultiMatchQuery
     public enum Type implements Writeable {
 
         /**
+         * 使用最匹配的那个Field的分值作为结果分值
          * Uses the best matching boolean field as main score and uses
          * a tie-breaker to adjust the score based on remaining field matches
          */
         BEST_FIELDS(MatchQuery.Type.BOOLEAN, 0.0f, new ParseField("best_fields", "boolean")),
 
         /**
+         * 使用所有字段的分值，也就是每个字段的分值权重相同
+         * ES会为每个字段生成一个match查询，然后将它们包含在一个bool查询中。
          * Uses the sum of the matching boolean fields to score the query
          */
         MOST_FIELDS(MatchQuery.Type.BOOLEAN, 1.0f, new ParseField("most_fields")),
 
         /**
+         * 跨字段查询，以词条为中心，每个文档需要出现所有Term, 不确定哪个Term出现在哪个Field, 但要全部出现
+         * 如果你在索引文档前就能够自定义_all字段的话，那么使用_all字段就是一个不错的方法。但是，ES同时也提供了一个搜索期间的解决方案：使用类型为cross_fields的multi_match
+         * 查询。cross_fields类型采用了一种以词条为中心(Term-centric)的方法，这种方法和best_fields及most_fields采用的以字段为中心(Field-centric)
+         * 的方法有很大的区别。它将所有的字段视为一个大的字段，然后在任一字段中搜索每个词条。
          * Uses a blended DocumentFrequency to dynamically combine the queried
          * fields into a single field given the configured analysis is identical.
          * This type uses a tie-breaker to adjust the score based on remaining
@@ -120,6 +127,7 @@ public class MultiMatchQueryBuilder extends AbstractQueryBuilder<MultiMatchQuery
         CROSS_FIELDS(MatchQuery.Type.BOOLEAN, 0.0f, new ParseField("cross_fields")),
 
         /**
+         * 使用最匹配的短语的Field的分值作为主分值，同时用tie-breaker来附加上其他Field的部分分值
          * Uses the best matching phrase field as main score and uses
          * a tie-breaker to adjust the score based on remaining field matches
          */
