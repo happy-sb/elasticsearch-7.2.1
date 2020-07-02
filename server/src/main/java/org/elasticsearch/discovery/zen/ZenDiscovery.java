@@ -329,8 +329,6 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
     /**
      * 发布所有变更信息给节点
      *
-     * @param clusterChangedEvent
-     * @param ackListener
      */
     @Override
     public void publish(ClusterChangedEvent clusterChangedEvent, ActionListener<Void> publishListener, AckListener ackListener) {
@@ -820,7 +818,6 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
     /**
      * 找到集群中的master
      *
-     * @return
      */
     private DiscoveryNode findMaster() {
         logger.trace("starting to ping");
@@ -902,10 +899,7 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
     /**
      * 是否要过滤其他节点的response
      *
-     * @param fullPingResponses
      * @param masterElectionIgnoreNonMasters {@link #masterElectionIgnoreNonMasters} 默认 false
-     * @param logger
-     * @return
      */
     static List<ZenPing.PingResponse> filterPingResponses(List<ZenPing.PingResponse> fullPingResponses,
                                                           boolean masterElectionIgnoreNonMasters, Logger logger) {

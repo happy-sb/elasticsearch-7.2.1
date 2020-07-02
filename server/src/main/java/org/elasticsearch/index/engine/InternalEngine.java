@@ -309,10 +309,6 @@ public class InternalEngine extends Engine {
         /**
          * 通过 SearcherManager 里的  IndexSearcher 内部的 indexReader , 来重新生成一个 IndexSearcher
          * 而不是直接使用 {@link #internalSearcherManager} 里的 IndexSearcher
-         *
-         * @param internalSearcherManager
-         * @param searcherFactory
-         * @throws IOException
          */
         ExternalSearcherManager(SearcherManager internalSearcherManager, SearcherFactory searcherFactory) throws IOException {
             IndexSearcher acquire = internalSearcherManager.acquire();
@@ -333,9 +329,6 @@ public class InternalEngine extends Engine {
         /**
          * 是否需要刷新IndexSearcher
          *
-         * @param referenceToRefresh
-         * @return
-         * @throws IOException
          */
         @Override
         protected IndexSearcher refreshIfNeeded(IndexSearcher referenceToRefresh) throws IOException {
@@ -1673,7 +1666,6 @@ public class InternalEngine extends Engine {
     /**
      * 是否应该触发Flush
      *
-     * @return
      */
     @Override
     public boolean shouldPeriodicallyFlush() {
@@ -2153,8 +2145,6 @@ public class InternalEngine extends Engine {
     /**
      * 创建Lucen的IndexWriter
      *
-     * @return
-     * @throws IOException
      */
     private IndexWriter createWriter() throws IOException {
         try {

@@ -658,15 +658,6 @@ public class IndicesService extends AbstractLifecycleComponent
     /**
      * 创建分片
      *
-     * @param shardRouting
-     * @param recoveryState
-     * @param recoveryTargetService
-     * @param recoveryListener
-     * @param repositoriesService
-     * @param onShardFailure
-     * @param globalCheckpointSyncer
-     * @return
-     * @throws IOException
      */
     @Override
     public IndexShard createShard(

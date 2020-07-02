@@ -39,53 +39,6 @@ import static org.elasticsearch.rest.RestRequest.Method.POST;
  * 分析请求, 查看ES如何对查询参数做分词
  *
  * 使用哪个索引的哪个Field的映射来分词
- * http://localhost:9200/lanboal/_analyze POST
- * {
- * "field": "text",
- * "analyzer": "standard",
- * "text": "Eating an apple a day keeps doctor away"
- * }
- *
- * settings配置, 含有索引里可能用到的一些信息，比如多个分析器, 索引内不同的field可以使用不同的分析器
- * {
- *     "settings": {
- *         "analysis": {
- *             "char_filter": {
- *                 "&_to_and": {
- *                     "type":       "mapping",
- *                     "mappings": [ "&=> and "]
- *             }},
- *             "filter": {
- *                 "my_stopwords": {
- *                     "type":       "stop",
- *                     "stopwords": [ "the", "a" ]
- *             }},
- *             "analyzer": {
- *                 "my_analyzer": {
- *                     "type":         "custom",
- *                     "char_filter":  [ "html_strip", "&_to_and" ],
- *                     "tokenizer":    "standard",
- *                     "filter":       [ "lowercase", "my_stopwords" ]
- *             }}
- * }}}
- *
- * 请求解析：http://localhost:9200/my_index/_analyze  POST
- *
- * {
- * 	"analyzer": "my_analyzer",
- * 	"text":"The quick & brown fox"
- * }
- *
- * 使用分析器： http://localhost:9200/my_index/_mapping/my_type  PUT
- *
- * {
- *     "properties": {
- *         "title": {
- *             "type":      "string",
- *             "analyzer":  "my_analyzer"
- *         }
- *     }
- * }
  *
  */
 public class RestAnalyzeAction extends BaseRestHandler {
@@ -109,7 +62,7 @@ public class RestAnalyzeAction extends BaseRestHandler {
         public static final ParseField TOKEN_FILTERS = new ParseField("filter");
 
         /**
-         * 字符过滤器, 比如 & => and 转换
+         * 字符过滤器
          */
         public static final ParseField CHAR_FILTERS = new ParseField("char_filter");
         public static final ParseField EXPLAIN = new ParseField("explain");

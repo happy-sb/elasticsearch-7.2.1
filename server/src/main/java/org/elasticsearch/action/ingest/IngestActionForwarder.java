@@ -56,7 +56,6 @@ public final class IngestActionForwarder implements ClusterStateApplier {
     /**
      * 所及获取一个ingest节点
      *
-     * @return
      */
     private DiscoveryNode randomIngestNode() {
         final DiscoveryNode[] nodes = ingestNodes;

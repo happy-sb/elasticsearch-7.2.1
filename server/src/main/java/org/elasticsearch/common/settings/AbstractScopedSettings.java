@@ -647,9 +647,6 @@ public abstract class AbstractScopedSettings {
 
     /**
      * 获取原始的配置
-     *
-     * @param key
-     * @return
      */
     private Setting<?> getRaw(String key) {
         // 从键值对里获取

@@ -615,12 +615,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
     /**
      * 当前节点向其他几点发送请求
      *
-     * @param connection
-     * @param action
-     * @param request
-     * @param options
-     * @param handler
-     * @param <T>
      */
     private <T extends TransportResponse> void sendRequestInternal(final Transport.Connection connection, final String action,
                                                                    final TransportRequest request,
@@ -701,12 +695,8 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
 
     /**
      * 发送本地请求,当当前分片是主分片时会调用此方法
-     * {@link org.elasticsearch.action.support.replication.TransportReplicationAction#registerRequestHandlers(String, TransportService, Supplier, Supplier, String)}
+     * org.elasticsearch.action.support.replication.TransportReplicationAction#registerRequestHandlers(String, TransportService, Supplier, Supplier, String)
      *
-     * @param requestId
-     * @param action
-     * @param request
-     * @param options
      */
     private void sendLocalRequest(long requestId, final String action, final TransportRequest request, TransportRequestOptions options) {
         final DirectResponseChannel channel = new DirectResponseChannel(logger, localNode, action, requestId, this, threadPool);

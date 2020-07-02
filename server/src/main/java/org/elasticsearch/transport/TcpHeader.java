@@ -46,12 +46,6 @@ public class TcpHeader {
     /**
      * 写报文头部
      *
-     * @param output
-     * @param requestId
-     * @param status
-     * @param version
-     * @param messageSize
-     * @throws IOException
      */
     public static void writeHeader(StreamOutput output, long requestId, byte status, Version version, int messageSize) throws IOException {
         output.writeByte((byte)'E');

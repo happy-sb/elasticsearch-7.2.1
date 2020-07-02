@@ -239,12 +239,6 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         /**
          * 发送TCP请求
          *
-         * @param requestId
-         * @param action
-         * @param request
-         * @param options
-         * @throws IOException
-         * @throws TransportException
          */
         @Override
         public void sendRequest(long requestId, String action, TransportRequest request, TransportRequestOptions options)

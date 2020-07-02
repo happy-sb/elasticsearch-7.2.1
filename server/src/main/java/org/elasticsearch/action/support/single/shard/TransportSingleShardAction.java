@@ -121,8 +121,6 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
     /**
      * 是否要解析索引
      *
-     * @param request
-     * @return
      */
     protected abstract boolean resolveIndex(Request request);
 
@@ -246,7 +244,6 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
         /**
          * 执行请求
          *
-         * @param currentFailure
          */
         private void perform(@Nullable final Exception currentFailure) {
             Exception lastFailure = this.lastFailure;

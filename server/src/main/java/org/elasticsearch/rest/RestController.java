@@ -190,9 +190,6 @@ public class RestController implements HttpServerTransport.Dispatcher {
     /**
      * 处理不正常的请求
      *
-     * @param request
-     * @param channel
-     * @param cause
      */
     @Override
     public void dispatchBadRequest(final RestRequest request, final RestChannel channel,
@@ -329,10 +326,6 @@ public class RestController implements HttpServerTransport.Dispatcher {
     /**
      * 尝试所有的handler
      *
-     * @param request
-     * @param channel
-     * @param threadContext
-     * @throws Exception
      */
     void tryAllHandlers(final RestRequest request, final RestChannel channel, final ThreadContext threadContext) throws Exception {
         for (String key : headersToCopy) {

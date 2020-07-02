@@ -91,8 +91,6 @@ public class MetaDataDeleteIndexService {
      * 从集群状态中删除一些索引, 这样发布状态后同步变化
      * Delete some indices from the cluster state.
      *
-     * @param currentState
-     * @param indices
      * @return 返回新的集群状态, 好同步给其他的节点
      */
     public ClusterState deleteIndices(ClusterState currentState, Set<Index> indices) {

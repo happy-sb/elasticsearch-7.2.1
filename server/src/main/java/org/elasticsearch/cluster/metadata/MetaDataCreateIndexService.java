@@ -284,9 +284,6 @@ public class MetaDataCreateIndexService {
          * 仅在ES里创建索引信息, 未同步至Lucene
          * 也可能是索引Mapping和settings的更新, 比如索引集群收缩或者拆分
          *
-         * @param currentState
-         * @return
-         * @throws Exception
          */
         @Override
         public ClusterState execute(ClusterState currentState) throws Exception {

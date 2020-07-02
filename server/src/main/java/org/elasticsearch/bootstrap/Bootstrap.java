@@ -255,11 +255,6 @@ final class Bootstrap {
     /**
      * 创建环境信息
      *
-     * @param pidFile
-     * @param secureSettings
-     * @param initialSettings
-     * @param configPath
-     * @return
      */
     private static Environment createEnvironment(
             final Path pidFile,
@@ -282,7 +277,6 @@ final class Bootstrap {
     /**
      * 节点启动,保证存活线程启动
      *
-     * @throws NodeValidationException
      */
     private void start() throws NodeValidationException {
         node.start();

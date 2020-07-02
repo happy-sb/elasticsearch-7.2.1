@@ -214,11 +214,6 @@ public class JvmGcMonitorService extends AbstractLifecycleComponent {
 
     /**
      * 打印慢GC时信息
-     * @param logger
-     * @param threshold
-     * @param seq
-     * @param slowGcEvent
-     * @param pools
      */
     static void logSlowGc(
         final Logger logger,

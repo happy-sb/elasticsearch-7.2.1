@@ -41,7 +41,7 @@ import java.util.Arrays;
 import java.util.Locale;
 
 /**
- * {@link org.elasticsearch.http.netty4.Netty4HttpRequestHandler} Netty处理Http请求的Handler
+ * org.elasticsearch.http.netty4.Netty4HttpRequestHandler  Netty处理Http请求的Handler
  *
  * This class starts elasticsearch.
  */
@@ -166,9 +166,6 @@ class Elasticsearch extends EnvironmentAwareCommand {
      * @param daemonize  是否是后台进程
      * @param pidFile    是否创建一个pid文件
      * @param quiet      是否不抛出异常
-     * @param initialEnv
-     * @throws NodeValidationException
-     * @throws UserException
      */
     void init(final boolean daemonize, final Path pidFile, final boolean quiet, Environment initialEnv)
         throws NodeValidationException, UserException {
