@@ -109,8 +109,8 @@ public class ReplicationOperation<
         primary.perform(request, ActionListener.wrap(this::handlePrimaryResult, resultListener::onFailure));
     }
 
-    /** 在主分片上执行请求
-     * @param primaryResult
+    /**
+     * 在主分片上执行请求
      */
     private void handlePrimaryResult(final PrimaryResultT primaryResult) {
         this.primaryResult = primaryResult;
@@ -152,10 +152,6 @@ public class ReplicationOperation<
 
     /**
      * replica上的数据同步请求
-     * @param replicaRequest
-     * @param globalCheckpoint
-     * @param maxSeqNoOfUpdatesOrDeletes
-     * @param replicationGroup
      */
     private void performOnReplicas(final ReplicaRequest replicaRequest, final long globalCheckpoint,
                                    final long maxSeqNoOfUpdatesOrDeletes, final ReplicationGroup replicationGroup) {

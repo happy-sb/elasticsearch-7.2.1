@@ -94,10 +94,6 @@ public final class ShardGetService extends AbstractIndexShardComponent {
      * @param id                 docId
      * @param gFields            查询那些Field
      * @param realtime           是否实时
-     * @param version
-     * @param versionType
-     * @param fetchSourceContext
-     * @return
      */
     private GetResult get(String type, String id, String[] gFields, boolean realtime, long version, VersionType versionType,
                           long ifSeqNo, long ifPrimaryTerm, FetchSourceContext fetchSourceContext, boolean readFromTranslog) {
@@ -173,15 +169,6 @@ public final class ShardGetService extends AbstractIndexShardComponent {
     /**
      * 查询数据
      *
-     * @param type
-     * @param id
-     * @param gFields
-     * @param realtime
-     * @param version
-     * @param versionType
-     * @param fetchSourceContext
-     * @param readFromTranslog
-     * @return
      */
     private GetResult innerGet(String type, String id, String[] gFields, boolean realtime, long version, VersionType versionType,
                                long ifSeqNo, long ifPrimaryTerm, FetchSourceContext fetchSourceContext, boolean readFromTranslog) {

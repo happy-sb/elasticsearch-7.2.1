@@ -603,9 +603,6 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
     /**
      * 处理批量索引请求,且做ingest预处理
      *
-     * @param task
-     * @param original
-     * @param listener
      */
     void processBulkIndexIngestRequest(Task task, BulkRequest original, ActionListener<BulkResponse> listener) {
         long ingestStartTimeInNanos = System.nanoTime();

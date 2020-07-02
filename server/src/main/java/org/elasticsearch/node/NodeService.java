@@ -75,7 +75,7 @@ public class NodeService implements Closeable {
      * @param circuitBreakerService    回环打破服务
      * @param scriptService            脚本服务
      * @param httpServerTransport      http服务端传输器
-     * @param ingestService
+     * @param ingestService            吞咽服务
      * @param clusterService           集群服务
      * @param settingsFilter           设置过滤
      * @param responseCollectorService 响应收集服务

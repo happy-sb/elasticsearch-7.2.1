@@ -60,7 +60,6 @@ public class JvmStats implements Writeable, ToXContentFragment {
 
     /**
      * 生成JVM统计信息
-     * @return
      */
     public static JvmStats jvmStats() {
         MemoryUsage memUsage = memoryMXBean.getHeapMemoryUsage();

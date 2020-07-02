@@ -239,11 +239,6 @@ final class IndexShardOperationPermits implements Closeable {
     /**
      * 获取索引分片操作许可
      *
-     * @param onAcquired
-     * @param executorOnDelay
-     * @param forceExecution
-     * @param debugInfo
-     * @param stackTrace
      */
     private void acquire(final ActionListener<Releasable> onAcquired, final String executorOnDelay, final boolean forceExecution,
                         final Object debugInfo, final StackTraceElement[] stackTrace) {

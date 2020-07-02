@@ -760,10 +760,6 @@ public abstract class TransportReplicationAction<
          * 调用 {@link TransportService#sendRequestInternal(Connection, String, TransportRequest, TransportRequestOptions, TransportResponseHandler)}
          * 当然中间会有interceptor拦截请求
          *
-         * @param node
-         * @param action
-         * @param isPrimaryAction
-         * @param requestToPerform
          */
         private void performAction(final DiscoveryNode node, final String action, final boolean isPrimaryAction,
                                    final TransportRequest requestToPerform) {

@@ -187,12 +187,6 @@ public class PublishClusterStateAction {
     /**
      * 执行集群状态发送
      *
-     * @param clusterChangedEvent
-     * @param nodesToPublishTo
-     * @param sendingController
-     * @param sendFullVersion
-     * @param serializedStates
-     * @param serializedDiffs
      */
     private void innerPublish(final ClusterChangedEvent clusterChangedEvent, final Set<DiscoveryNode> nodesToPublishTo,
                               final SendingController sendingController, final Discovery.AckListener ackListener,
@@ -253,12 +247,6 @@ public class PublishClusterStateAction {
     /**
      * 构建集群状态的差异性, 同时序列化
      *
-     * @param clusterState
-     * @param previousState
-     * @param nodesToPublishTo
-     * @param sendFullVersion
-     * @param serializedStates
-     * @param serializedDiffs
      */
     private void buildDiffAndSerializeStates(ClusterState clusterState, ClusterState previousState, Set<DiscoveryNode> nodesToPublishTo,
                                              boolean sendFullVersion, Map<Version, BytesReference> serializedStates,
@@ -558,7 +546,6 @@ public class PublishClusterStateAction {
         /**
          * 等待其他的非Master的Node的Commit
          *
-         * @param commitTimeout
          */
         public void waitForCommit(TimeValue commitTimeout) {
             boolean timedout = false;

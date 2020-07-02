@@ -61,8 +61,6 @@ public final class ScriptedSimilarity extends Similarity {
     /**
      * 计算属性的长度标准因子, 也就是标准化长度
      *
-     * @param state
-     * @return
      */
     @Override
     public long computeNorm(FieldInvertState state) {

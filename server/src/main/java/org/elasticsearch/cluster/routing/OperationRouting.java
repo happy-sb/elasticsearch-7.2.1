@@ -74,11 +74,6 @@ public class OperationRouting {
     /**
      * 得到要操作的分片
      *
-     * @param clusterState
-     * @param index
-     * @param id
-     * @param routing
-     * @return
      */
     public ShardIterator indexShards(ClusterState clusterState, String index, String id, @Nullable String routing) {
         return shards(clusterState, index, id, routing).shardsIt();
@@ -87,12 +82,6 @@ public class OperationRouting {
     /**
      * 获取分片迭代器，就是有哪些分片会用到
      *
-     * @param clusterState
-     * @param index
-     * @param id
-     * @param routing
-     * @param preference
-     * @return
      */
     public ShardIterator getShards(ClusterState clusterState, String index, String id, @Nullable String routing,
                                    @Nullable String preference) {
@@ -166,9 +155,6 @@ public class OperationRouting {
      * @param localNodeId      本地节点id
      * @param nodes            所有节点
      * @param preference       偏好
-     * @param collectorService
-     * @param nodeCounts
-     * @return
      */
     private ShardIterator preferenceActiveShardIterator(IndexShardRoutingTable indexShard, String localNodeId,
                                                         DiscoveryNodes nodes, @Nullable String preference,
@@ -294,11 +280,10 @@ public class OperationRouting {
     /**
      * 获取指定索引的路由列表
      *
-     * @param clusterState
-     * @param index
+     * @param clusterState 状态
+     * @param index 索引名称
      * @param id           请求id
      * @param routing      路由规则
-     * @return
      */
     protected IndexShardRoutingTable shards(ClusterState clusterState, String index, String id, String routing) {
         // 获取分片ID, 优先使用routing 的hash来确定, routing 不存在的话用requestId
@@ -315,10 +300,7 @@ public class OperationRouting {
     /**
      * 生成分片id
      *
-     * @param indexMetaData
      * @param id            请求id
-     * @param routing
-     * @return
      */
     public static int generateShardId(IndexMetaData indexMetaData, @Nullable String id, @Nullable String routing) {
         final String effectiveRouting;
@@ -345,10 +327,6 @@ public class OperationRouting {
     /**
      * 计算分片id
      *
-     * @param indexMetaData
-     * @param effectiveRouting
-     * @param partitionOffset
-     * @return
      */
     private static int calculateScaledShardId(IndexMetaData indexMetaData, String effectiveRouting, int partitionOffset) {
         final int hash = Murmur3HashFunction.hash(effectiveRouting) + partitionOffset;

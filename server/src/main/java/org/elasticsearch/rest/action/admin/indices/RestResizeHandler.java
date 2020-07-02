@@ -53,7 +53,6 @@ public abstract class RestResizeHandler extends BaseRestHandler {
 
     /**
      * 获取resize的类型，是收缩还是拆分
-     * @return
      */
     abstract ResizeType getResizeType();
 

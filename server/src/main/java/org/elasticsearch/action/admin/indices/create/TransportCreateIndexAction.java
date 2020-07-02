@@ -68,9 +68,6 @@ public class TransportCreateIndexAction extends TransportMasterNodeAction<Create
     /**
      * master操作
      *
-     * @param request
-     * @param state
-     * @param listener
      */
     @Override
     protected void masterOperation(final CreateIndexRequest request, final ClusterState state,

@@ -73,8 +73,6 @@ public class RestGetAction extends BaseRestHandler {
      *
      * @param request the request to execute
      * @param client  client for executing actions on the local node
-     * @return
-     * @throws IOException
      */
     @Override
     public RestChannelConsumer prepareRequest(final RestRequest request, final NodeClient client) throws IOException {

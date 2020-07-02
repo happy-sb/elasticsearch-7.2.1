@@ -419,8 +419,8 @@ public class ActionModule extends AbstractModule {
     /**
      * 设置action,将他们注册到集合中
      *
-     * @param actionPlugins
-     * @return
+     * @param actionPlugins 中文
+     * @return 中文
      */
     static Map<String, ActionHandler<?, ?>> setupActions(List<ActionPlugin> actionPlugins) {
         // Subclass NamedRegistry for easy registration

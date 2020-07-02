@@ -64,9 +64,6 @@ public class TransportGetAction extends TransportSingleShardAction<GetRequest, G
     /**
      * 有哪个分片要执行查询
      *
-     * @param state
-     * @param request
-     * @return
      */
     @Override
     protected ShardIterator shards(ClusterState state, InternalRequest request) {
@@ -106,9 +103,6 @@ public class TransportGetAction extends TransportSingleShardAction<GetRequest, G
     /**
      * 处理当前分片上的操作
      *
-     * @param request
-     * @param shardId
-     * @return
      */
     @Override
     protected GetResponse shardOperation(GetRequest request, ShardId shardId) {
