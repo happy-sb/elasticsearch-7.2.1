@@ -69,7 +69,7 @@ public class ClusterBootstrapService {
 
     private static final Logger logger = LogManager.getLogger(ClusterBootstrapService.class);
     private final Set<String> bootstrapRequirements;
-    @Nullable // null if discoveryIsConfigured(), 多久以后启动选举
+    @Nullable // null if discoveryIsConfigured()
     private final TimeValue unconfiguredBootstrapTimeout;
     private final TransportService transportService;
     private final Supplier<Iterable<DiscoveryNode>> discoveredNodesSupplier;
@@ -80,32 +80,25 @@ public class ClusterBootstrapService {
     public ClusterBootstrapService(Settings settings, TransportService transportService,
                                    Supplier<Iterable<DiscoveryNode>> discoveredNodesSupplier, BooleanSupplier isBootstrappedSupplier,
                                    Consumer<VotingConfiguration> votingConfigurationConsumer) {
-
-        // 如果是单节点的集群, 则不需要选举
         if (DiscoveryModule.SINGLE_NODE_DISCOVERY_TYPE.equals(DiscoveryModule.DISCOVERY_TYPE_SETTING.get(settings))) {
-            // 不能设置初始化时存在master
             if (INITIAL_MASTER_NODES_SETTING.exists(settings)) {
                 throw new IllegalArgumentException("setting [" + INITIAL_MASTER_NODES_SETTING.getKey() +
                     "] is not allowed when [" + DiscoveryModule.DISCOVERY_TYPE_SETTING.getKey() + "] is set to [" +
                     DiscoveryModule.SINGLE_NODE_DISCOVERY_TYPE + "]");
             }
-            // 如果当前节点没有设置成master eligible
             if (DiscoveryNode.isMasterNode(settings) == false) {
                 throw new IllegalArgumentException("node with [" + DiscoveryModule.DISCOVERY_TYPE_SETTING.getKey() + "] set to [" +
                     DiscoveryModule.SINGLE_NODE_DISCOVERY_TYPE +  "] must be master-eligible");
             }
             bootstrapRequirements = Collections.singleton(Node.NODE_NAME_SETTING.get(settings));
             unconfiguredBootstrapTimeout = null;
-        }
-        // 否则在启动时要定期选举，知道选举出master
-        else {
+        } else {
             final List<String> initialMasterNodes = INITIAL_MASTER_NODES_SETTING.get(settings);
             bootstrapRequirements = unmodifiableSet(new LinkedHashSet<>(initialMasterNodes));
             if (bootstrapRequirements.size() != initialMasterNodes.size()) {
                 throw new IllegalArgumentException(
                     "setting [" + INITIAL_MASTER_NODES_SETTING.getKey() + "] contains duplicates: " + initialMasterNodes);
             }
-            // 如果指定了节点的hosts, 则此参数为null, 否则默认3秒
             unconfiguredBootstrapTimeout = discoveryIsConfigured(settings) ? null : UNCONFIGURED_BOOTSTRAP_TIMEOUT_SETTING.get(settings);
         }
 
@@ -115,11 +108,6 @@ public class ClusterBootstrapService {
         this.votingConfigurationConsumer = votingConfigurationConsumer;
     }
 
-    /**
-     * 发现服务是否配置了节点的hosts
-     * @param settings
-     * @return
-     */
     public static boolean discoveryIsConfigured(Settings settings) {
         return Stream.of(DISCOVERY_SEED_PROVIDERS_SETTING, LEGACY_DISCOVERY_HOSTS_PROVIDER_SETTING,
             DISCOVERY_SEED_HOSTS_SETTING, LEGACY_DISCOVERY_ZEN_PING_UNICAST_HOSTS_SETTING,
@@ -162,23 +150,19 @@ public class ClusterBootstrapService {
         if (unconfiguredBootstrapTimeout == null) {
             return;
         }
-        // 当前节点不是master, 才执行后续
+
         if (transportService.getLocalNode().isMasterNode() == false) {
             return;
         }
-        // 发现配置没有找到， 在多久以后开始选举master, 知道选举出来
+
         logger.info("no discovery configuration found, will perform best-effort cluster bootstrapping after [{}] " +
             "unless existing master is discovered", unconfiguredBootstrapTimeout);
 
-        // 每隔3S执行此任务一次
         transportService.getThreadPool().scheduleUnlessShuttingDown(unconfiguredBootstrapTimeout, Names.GENERIC, new Runnable() {
             @Override
             public void run() {
-                // 获取所有节点
                 final Set<DiscoveryNode> discoveredNodes = getDiscoveredNodes();
-                // 配置7.0以前版本的节点
                 final List<DiscoveryNode> zen1Nodes = discoveredNodes.stream().filter(Coordinator::isZen1Node).collect(Collectors.toList());
-                // 如果 不存在7.0版本以前的节点配置
                 if (zen1Nodes.isEmpty()) {
                     logger.debug("performing best-effort cluster bootstrapping with {}", discoveredNodes);
                     startBootstrap(discoveredNodes, emptyList());
@@ -194,25 +178,15 @@ public class ClusterBootstrapService {
         });
     }
 
-    /**
-     * 获取所有的节点
-     * @return
-     */
     private Set<DiscoveryNode> getDiscoveredNodes() {
         return Stream.concat(Stream.of(transportService.getLocalNode()),
             StreamSupport.stream(discoveredNodesSupplier.get().spliterator(), false)).collect(Collectors.toSet());
     }
 
-    /**
-     * 开启启动
-     * @param discoveryNodes
-     * @param unsatisfiedRequirements
-     */
     private void startBootstrap(Set<DiscoveryNode> discoveryNodes, List<String> unsatisfiedRequirements) {
         assert discoveryNodes.stream().allMatch(DiscoveryNode::isMasterNode) : discoveryNodes;
         assert discoveryNodes.stream().noneMatch(Coordinator::isZen1Node) : discoveryNodes;
         assert unsatisfiedRequirements.size() < discoveryNodes.size() : discoveryNodes + " smaller than " + unsatisfiedRequirements;
-
         if (bootstrappingPermitted.compareAndSet(true, false)) {
             doBootstrap(new VotingConfiguration(Stream.concat(discoveryNodes.stream().map(DiscoveryNode::getId),
                 unsatisfiedRequirements.stream().map(s -> BOOTSTRAP_PLACEHOLDER_PREFIX + s))

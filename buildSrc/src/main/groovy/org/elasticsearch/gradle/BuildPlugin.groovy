@@ -814,10 +814,8 @@ class BuildPlugin implements Plugin<Project> {
                  * -serial because we don't use java serialization.
                  */
                 // don't even think about passing args with -J-xxx, oracle will ask you to submit a bug report :)
-                // fail on all javac warningsJsonXContentGenerator
-                //options.compilerArgs << '-Werror' << '-Xlint:all,-path,-serial,-options,-deprecation,-try,-unchecked' << '-Xdoclint:all' << '-Xdoclint:-missing'
-                // 本地跳过告警：https://blog.csdn.net/moxiaoya1314/article/details/80763201
-                options.compilerArgs << '-Xlint:-path,-serial,-options,-deprecation,-try,-unchecked,-dep-ann'
+                // fail on all javac warnings
+                options.compilerArgs << '-Werror' << '-Xlint:all,-path,-serial,-options,-deprecation,-try' << '-Xdoclint:all' << '-Xdoclint:-missing'
 
                 // either disable annotation processor completely (default) or allow to enable them if an annotation processor is explicitly defined
                 if (options.compilerArgs.contains("-processor") == false) {
