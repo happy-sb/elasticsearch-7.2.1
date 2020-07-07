@@ -517,6 +517,10 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
         }
     }
 
+    /**
+     * 成为候选者,做一些预备工作
+     * @param method
+     */
     void becomeCandidate(String method) {
         assert Thread.holdsLock(mutex) : "Coordinator mutex not held";
         logger.debug("{}: coordinator becoming CANDIDATE in term {} (was {}, lastKnownLeader was [{}])",
@@ -544,9 +548,10 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
             lagDetector.clearTrackedNodes();
 
             if (prevMode == Mode.LEADER) {
+                // 清空master服务
                 cleanMasterService();
             }
-
+            // 如果集群中已经有了master
             if (applierState.nodes().getMasterNodeId() != null) {
                 applierState = clusterStateWithNoMasterBlock(applierState);
                 clusterApplier.onNewClusterState("becoming candidate: " + method, () -> applierState, (source, e) -> {
@@ -695,6 +700,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
                     .addGlobalBlock(noMasterBlockService.getNoMasterBlock()))
                 .nodes(DiscoveryNodes.builder().add(getLocalNode()).localNodeId(getLocalNode().getId()))
                 .build();
+
             applierState = initialState;
             clusterApplier.setInitialState(initialState);
         }
@@ -710,6 +716,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
         synchronized (mutex) {
             becomeCandidate("startInitialJoin");
         }
+        // 集群启动服务定期执行
         clusterBootstrapService.scheduleUnconfiguredBootstrap();
     }
 
