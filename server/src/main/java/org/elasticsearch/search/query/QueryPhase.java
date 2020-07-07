@@ -205,19 +205,16 @@ public class QueryPhase implements SearchPhase {
                 hasFilterCollector = true;
             }
 
-            // 是否设置了timeout
             boolean timeoutSet = scrollContext == null && searchContext.timeout() != null &&
                 searchContext.timeout().equals(SearchService.NO_TIMEOUT) == false;
 
             final Runnable timeoutRunnable;
-            // 设置了超时时间
             if (timeoutSet) {
                 final long startTime = searchContext.getRelativeTimeInMillis();
                 final long timeout = searchContext.timeout().millis();
                 final long maxTime = startTime + timeout;
                 timeoutRunnable = () -> {
                     final long time = searchContext.getRelativeTimeInMillis();
-                    // 如果时间超过，则抛出时间超时异常
                     if (time > maxTime) {
                         throw new TimeExceededException();
                     }
