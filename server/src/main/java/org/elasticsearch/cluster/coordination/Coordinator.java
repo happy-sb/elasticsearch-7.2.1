@@ -843,6 +843,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
     }
 
     /**
+     * 设置集群选举的初始化配置, 然后启动选举流程
      * Sets the initial configuration to the given {@link VotingConfiguration}. This method is safe to call
      * more than once, as long as the argument to each call is the same.
      *
@@ -851,6 +852,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
      */
     public boolean setInitialConfiguration(final VotingConfiguration votingConfiguration) {
         synchronized (mutex) {
+            // 获取集群状态
             final ClusterState currentState = getStateForMasterService();
 
             if (isInitialConfigurationSet()) {
@@ -1202,6 +1204,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
                         if (prevotingRound != null) {
                             prevotingRound.close();
                         }
+                        // 收集所有的7.0版本以后的节点
                         final List<DiscoveryNode> discoveredNodes
                             = getDiscoveredNodes().stream().filter(n -> isZen1Node(n) == false).collect(Collectors.toList());
                         // 发送选举请求,启动选举结果收集

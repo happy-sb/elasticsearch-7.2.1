@@ -43,6 +43,9 @@ import java.util.stream.StreamSupport;
 import static org.elasticsearch.cluster.coordination.CoordinationState.isElectionQuorum;
 import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.newConcurrentSet;
 
+/**
+ * 前期选举收集齐
+ */
 public class PreVoteCollector {
 
     private static final Logger logger = LogManager.getLogger(PreVoteCollector.class);
@@ -103,6 +106,8 @@ public class PreVoteCollector {
      * @return
      */
     private PreVoteResponse handlePreVoteRequest(final PreVoteRequest request) {
+        // org.elasticsearch.cluster.coordination.Coordinator.updateMaxTermSeen
+        // 更新收到的最大任期
         updateMaxTermSeen.accept(request.getCurrentTerm());
 
         Tuple<DiscoveryNode, PreVoteResponse> state = this.state;
@@ -110,7 +115,7 @@ public class PreVoteCollector {
 
         final DiscoveryNode leader = state.v1();
         final PreVoteResponse response = state.v2();
-
+        //
         if (leader == null) {
             return response;
         }
@@ -134,6 +139,9 @@ public class PreVoteCollector {
             '}';
     }
 
+    /**
+     * 前置选举过程
+     */
     private class PreVotingRound implements Releasable {
         private final Set<DiscoveryNode> preVotesReceived = newConcurrentSet();
         private final AtomicBoolean electionStarted = new AtomicBoolean();

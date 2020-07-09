@@ -27,6 +27,9 @@ import java.io.IOException;
 import java.util.Objects;
 
 public class PreVoteResponse extends TransportResponse {
+    /**
+     * 当前节点的任期
+     */
     private final long currentTerm;
     private final long lastAcceptedTerm;
     private final long lastAcceptedVersion;
