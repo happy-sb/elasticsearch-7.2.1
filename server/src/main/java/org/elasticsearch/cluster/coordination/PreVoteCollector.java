@@ -62,6 +62,7 @@ public class PreVoteCollector {
         this.updateMaxTermSeen = updateMaxTermSeen;
 
         // TODO does this need to be on the generic threadpool or can it use SAME?
+        // 注册选举的handler处理器
         transportService.registerRequestHandler(REQUEST_PRE_VOTE_ACTION_NAME, Names.GENERIC, false, false,
             PreVoteRequest::new,
             (request, channel, task) -> channel.sendResponse(handlePreVoteRequest(request)));
@@ -96,6 +97,11 @@ public class PreVoteCollector {
         state = new Tuple<>(leader, preVoteResponse);
     }
 
+    /**
+     * 处理接收到的选举请求
+     * @param request
+     * @return
+     */
     private PreVoteResponse handlePreVoteRequest(final PreVoteRequest request) {
         updateMaxTermSeen.accept(request.getCurrentTerm());
 
@@ -140,6 +146,10 @@ public class PreVoteCollector {
             preVoteRequest = new PreVoteRequest(transportService.getLocalNode(), currentTerm);
         }
 
+        /**
+         * 启动选举, 发送请求,获取响应, 处理结果
+         * @param broadcastNodes
+         */
         void start(final Iterable<DiscoveryNode> broadcastNodes) {
             assert StreamSupport.stream(broadcastNodes.spliterator(), false).noneMatch(Coordinator::isZen1Node) : broadcastNodes;
             logger.debug("{} requesting pre-votes from {}", this, broadcastNodes);
@@ -172,14 +182,21 @@ public class PreVoteCollector {
                 }));
         }
 
+        /**
+         * 处理选举结果
+         * @param response
+         * @param sender
+         */
         private void handlePreVoteResponse(final PreVoteResponse response, final DiscoveryNode sender) {
             if (isClosed.get()) {
                 logger.debug("{} is closed, ignoring {} from {}", this, response, sender);
                 return;
             }
-
+            // org.elasticsearch.cluster.coordination.Coordinator.updateMaxTermSeen()
+            // // 如果当前是leader，且收到的任期比当前大, 则当前节点作为follower加入新的leader所在的任期
             updateMaxTermSeen.accept(response.getCurrentTerm());
 
+            // 如果任期不一致，或者一致当时选举版本不一致, 则不处理, 上一步已经更新了最大任期
             if (response.getLastAcceptedTerm() > clusterState.term()
                 || (response.getLastAcceptedTerm() == clusterState.term()
                 && response.getLastAcceptedVersion() > clusterState.getVersionOrMetaDataVersion())) {
@@ -187,15 +204,18 @@ public class PreVoteCollector {
                 return;
             }
 
+            // 接收到此节点的响应，任期一致且选举版本一致或者选举版本比自己发起的早
             preVotesReceived.add(sender);
+            // 每一次都统计接收到的选举响应的节点个数,判断是否达到选举阈值
             final VoteCollection voteCollection = new VoteCollection();
             preVotesReceived.forEach(voteCollection::addVote);
 
+            // 是否达到选举的法定人数, 默认响应的节点超过发送的一半
             if (isElectionQuorum(voteCollection, clusterState) == false) {
                 logger.debug("{} added {} from {}, no quorum yet", this, response, sender);
                 return;
             }
-
+            // 开始选举
             if (electionStarted.compareAndSet(false, true) == false) {
                 logger.debug("{} added {} from {} but election has already started", this, response, sender);
                 return;
