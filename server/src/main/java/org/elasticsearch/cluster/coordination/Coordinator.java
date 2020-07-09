@@ -140,6 +140,9 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
 
     private Mode mode;
     private Optional<DiscoveryNode> lastKnownLeader;
+    /**
+     * 最近一次加入到leader的任期的信息
+     */
     private Optional<Join> lastJoin;
     private JoinHelper.JoinAccumulator joinAccumulator;
     private Optional<CoordinatorPublication> currentPublication = Optional.empty();
@@ -349,10 +352,16 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
         }
     }
 
+    /**
+     * 更新收到的最大任期
+     * @param term
+     */
     private void updateMaxTermSeen(final long term) {
         synchronized (mutex) {
+            // 对比当前最大任期和 参数任期, 选最大的
             maxTermSeen = Math.max(maxTermSeen, term);
             final long currentTerm = getCurrentTerm();
+            // 如果当前是leader，且收到的任期比当前大, 则当前节点作为follower加入新的leader所在的任期
             if (mode == Mode.LEADER && maxTermSeen > currentTerm) {
                 // Bump our term. However if there is a publication in flight then doing so would cancel the publication, so don't do that
                 // since we check whether a term bump is needed at the end of the publication too.
@@ -362,6 +371,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
                     try {
                         logger.debug("updateMaxTermSeen: maxTermSeen = {} > currentTerm = {}, bumping term", maxTermSeen, currentTerm);
                         ensureTermAtLeast(getLocalNode(), maxTermSeen);
+                        // 重新开始选举,加入集群新的leader。当前leader断网了，新的leader被选举出来，然后同步给了旧的leader，旧的leader加入新的leader的任期
                         startElection();
                     } catch (Exception e) {
                         logger.warn(new ParameterizedMessage("failed to bump term to {}", maxTermSeen), e);
@@ -372,11 +382,15 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
         }
     }
 
+    /**
+     * 启动选举
+     */
     private void startElection() {
         synchronized (mutex) {
             // The preVoteCollector is only active while we are candidate, but it does not call this method with synchronisation, so we have
             // to check our mode again here.
             if (mode == Mode.CANDIDATE) {
+                // 如果当前节点不具备成为master的条件
                 if (electionQuorumContainsLocalNode(getLastAcceptedState()) == false) {
                     logger.trace("skip election as local node is not part of election quorum: {}",
                         getLastAcceptedState().coordinationMetaData());
@@ -385,6 +399,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
 
                 final StartJoinRequest startJoinRequest
                     = new StartJoinRequest(getLocalNode(), Math.max(getCurrentTerm(), maxTermSeen) + 1);
+
                 logger.debug("starting election with {}", startJoinRequest);
                 getDiscoveredNodes().forEach(node -> {
                     if (isZen1Node(node) == false) {
@@ -432,9 +447,15 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
         return Optional.empty();
     }
 
+    /**
+     * 加入leader所在的任期
+     * @param startJoinRequest
+     * @return
+     */
     private Join joinLeaderInTerm(StartJoinRequest startJoinRequest) {
         synchronized (mutex) {
             logger.debug("joinLeaderInTerm: for [{}] with term {}", startJoinRequest.getSourceNode(), startJoinRequest.getTerm());
+            // 处理加入leader任期请求
             final Join join = coordinationState.get().handleStartJoin(startJoinRequest);
             lastJoin = Optional.of(join);
             peerFinder.setCurrentTerm(getCurrentTerm());
@@ -867,6 +888,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
             assert electionQuorumContainsLocalNode(getLastAcceptedState()) :
                 "initial state does not have local node in its election quorum: " + getLastAcceptedState().coordinationMetaData();
             preVoteCollector.update(getPreVoteResponse(), null); // pick up the change to last-accepted version
+            // 启动选举定时器
             startElectionScheduler();
             return true;
         }
@@ -1146,6 +1168,9 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
         }
     }
 
+    /**
+     * 启动选举流程定时器
+     */
     private void startElectionScheduler() {
         assert electionScheduler == null : electionScheduler;
 
@@ -1172,7 +1197,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
                         }
                         final List<DiscoveryNode> discoveredNodes
                             = getDiscoveredNodes().stream().filter(n -> isZen1Node(n) == false).collect(Collectors.toList());
-
+                        // 发送选举请求,启动选举结果收集
                         prevotingRound = preVoteCollector.start(lastAcceptedState, discoveredNodes);
                     }
                 }

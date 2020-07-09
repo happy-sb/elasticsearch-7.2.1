@@ -314,6 +314,7 @@ public class JoinHelper {
     public void sendStartJoinRequest(final StartJoinRequest startJoinRequest, final DiscoveryNode destination) {
         assert startJoinRequest.getSourceNode().isMasterNode()
             : "sending start-join request for master-ineligible " + startJoinRequest.getSourceNode();
+
         transportService.sendRequest(destination, START_JOIN_ACTION_NAME,
             startJoinRequest, new TransportResponseHandler<Empty>() {
                 @Override

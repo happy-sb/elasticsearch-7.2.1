@@ -160,13 +160,14 @@ public class CoordinationState {
     }
 
     /**
-     * May be safely called at any time to move this instance to a new term.
+     * May be safely called at any time to move this instance to a new term. 将当前实例加入到一个leader的任期中,也就是加入集群
      *
      * @param startJoinRequest The startJoinRequest, specifying the node requesting the join.
      * @return A Join that should be sent to the target node of the join.
      * @throws CoordinationStateRejectedException if the arguments were incompatible with the current state of this object.
      */
     public Join handleStartJoin(StartJoinRequest startJoinRequest) {
+        // term任期, 请求任期一定要比当前任期大
         if (startJoinRequest.getTerm() <= getCurrentTerm()) {
             logger.debug("handleStartJoin: ignoring [{}] as term provided is not greater than current term [{}]",
                 startJoinRequest, getCurrentTerm());
@@ -187,7 +188,7 @@ public class CoordinationState {
             }
             logger.debug("handleStartJoin: discarding {}: {}", joinVotes, reason);
         }
-
+        // 设置当前任期
         persistedState.setCurrentTerm(startJoinRequest.getTerm());
         assert getCurrentTerm() == startJoinRequest.getTerm();
         lastPublishedVersion = 0;
@@ -507,6 +508,9 @@ public class CoordinationState {
      */
     public static class VoteCollection {
 
+        /**
+         * 接收到选举响应的节点
+         */
         private final Map<String, DiscoveryNode> nodes;
 
         public boolean addVote(DiscoveryNode sourceNode) {

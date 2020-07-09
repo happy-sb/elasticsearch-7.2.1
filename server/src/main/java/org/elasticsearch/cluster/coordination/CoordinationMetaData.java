@@ -343,6 +343,11 @@ public class CoordinationMetaData implements Writeable, ToXContentFragment {
             out.writeStringArray(nodeIds.toArray(new String[nodeIds.size()]));
         }
 
+        /**
+         * 是否达到法定人数, 默认是超过配置节点数的一半
+         * @param votes
+         * @return
+         */
         public boolean hasQuorum(Collection<String> votes) {
             final HashSet<String> intersection = new HashSet<>(nodeIds);
             intersection.retainAll(votes);

@@ -53,6 +53,9 @@ public class Manifest implements ToXContentFragment {
 
     private final long globalGeneration;
     private final Map<Index, Long> indexGenerations;
+    /**
+     * 当前任期，每选举成功一次自增1
+     */
     private final long currentTerm;
     private final long clusterStateVersion;
 
