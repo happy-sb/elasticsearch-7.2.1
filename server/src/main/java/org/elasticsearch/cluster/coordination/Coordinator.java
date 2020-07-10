@@ -106,6 +106,9 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
     private final TransportService transportService;
     private final MasterService masterService;
     private final AllocationService allocationService;
+    /**
+     * 加入leader的帮助器
+     */
     private final JoinHelper joinHelper;
     private final NodeRemovalClusterStateTaskExecutor nodeRemovalExecutor;
     private final Supplier<CoordinationState.PersistedState> persistedStateSupplier;
@@ -157,8 +160,10 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
         this.allocationService = allocationService;
         this.onJoinValidators = JoinTaskExecutor.addBuiltInJoinValidators(onJoinValidators);
         this.singleNodeDiscovery = DiscoveryModule.SINGLE_NODE_DISCOVERY_TYPE.equals(DiscoveryModule.DISCOVERY_TYPE_SETTING.get(settings));
+
         this.joinHelper = new JoinHelper(settings, allocationService, masterService, transportService,
             this::getCurrentTerm, this::getStateForMasterService, this::handleJoinRequest, this::joinLeaderInTerm, this.onJoinValidators);
+
         this.persistedStateSupplier = persistedStateSupplier;
         this.noMasterBlockService = new NoMasterBlockService(settings, clusterSettings);
         this.lastKnownLeader = Optional.empty();
@@ -397,11 +402,12 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
                     return;
                 }
 
-                final StartJoinRequest startJoinRequest
-                    = new StartJoinRequest(getLocalNode(), Math.max(getCurrentTerm(), maxTermSeen) + 1);
+                // 选举任期+1
+                final StartJoinRequest startJoinRequest = new StartJoinRequest(getLocalNode(), Math.max(getCurrentTerm(), maxTermSeen) + 1);
 
                 logger.debug("starting election with {}", startJoinRequest);
                 getDiscoveredNodes().forEach(node -> {
+                    // 是7.0以后的节点
                     if (isZen1Node(node) == false) {
                         joinHelper.sendStartJoinRequest(startJoinRequest, node);
                     }
@@ -469,9 +475,14 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
         }
     }
 
-
+    /**
+     * 处理join请求
+     * @param joinRequest
+     * @param joinCallback
+     */
     private void handleJoinRequest(JoinRequest joinRequest, JoinHelper.JoinCallback joinCallback) {
         assert Thread.holdsLock(mutex) == false;
+        // 当前节点是 master eligible
         assert getLocalNode().isMasterNode() : getLocalNode() + " received a join but is not master-eligible";
         logger.trace("handleJoinRequest: as {}, handling {}", mode, joinRequest);
 
@@ -485,6 +496,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
 
         final ClusterState stateForJoinValidation = getStateForMasterService();
 
+        // 是否是当前节点被选举为master
         if (stateForJoinValidation.nodes().isLocalNodeElectedMaster()) {
             onJoinValidators.forEach(a -> a.accept(joinRequest.getSourceNode(), stateForJoinValidation));
             if (stateForJoinValidation.getBlocks().hasGlobalBlock(STATE_NOT_RECOVERED_BLOCK) == false) {
@@ -530,6 +542,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
             final boolean prevElectionWon = coordState.electionWon();
 
             optionalJoin.ifPresent(this::handleJoin);
+            // join计数器
             joinAccumulator.handleJoinRequest(joinRequest.getSourceNode(), joinCallback);
 
             if (prevElectionWon == false && coordState.electionWon()) {
@@ -539,7 +552,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
     }
 
     /**
-     * 成为候选者,做一些预备工作
+     * 成为master候选者, 重新开始选举 ,做一些预备工作
      * @param method
      */
     void becomeCandidate(String method) {
@@ -551,6 +564,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
             final Mode prevMode = mode;
             mode = Mode.CANDIDATE;
             cancelActivePublication("become candidate: " + method);
+            // join计数器
             joinAccumulator.close(mode);
             joinAccumulator = joinHelper.new CandidateJoinAccumulator();
 
@@ -568,6 +582,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
             followersChecker.updateFastResponseState(getCurrentTerm(), mode);
             lagDetector.clearTrackedNodes();
 
+            // 如果之前是master
             if (prevMode == Mode.LEADER) {
                 // 清空master服务
                 cleanMasterService();
@@ -956,8 +971,10 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
 
     private void handleJoin(Join join) {
         synchronized (mutex) {
+            // 确认收到的任期比当前任期大
             ensureTermAtLeast(getLocalNode(), join.getTerm()).ifPresent(this::handleJoin);
 
+            // 如果选举胜出
             if (coordinationState.get().electionWon()) {
                 // If we have already won the election then the actual join does not matter for election purposes, so swallow any exception
                 final boolean isNewJoin = handleJoinIgnoringExceptions(join);
@@ -965,6 +982,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
                 // If we haven't completely finished becoming master then there's already a publication scheduled which will, in turn,
                 // schedule a reconfiguration if needed. It's benign to schedule a reconfiguration anyway, but it might fail if it wins the
                 // race against the election-winning publication and log a big error message, which we can prevent by checking this here:
+                // 当前节点是否被确立为master
                 final boolean establishedAsMaster = mode == Mode.LEADER && getLastAcceptedState().term() == getCurrentTerm();
                 if (isNewJoin && establishedAsMaster && publicationInProgress() == false) {
                     scheduleReconfigurationIfNeeded();
@@ -1220,6 +1238,10 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
         });
     }
 
+    /**
+     * 获取集群的master eligible 节点
+     * @return
+     */
     public Iterable<DiscoveryNode> getFoundPeers() {
         // TODO everyone takes this and adds the local node. Maybe just add the local node here?
         return peerFinder.getFoundPeers();

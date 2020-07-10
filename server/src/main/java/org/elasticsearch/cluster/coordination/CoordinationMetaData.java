@@ -190,7 +190,7 @@ public class CoordinationMetaData implements Writeable, ToXContentFragment {
         public Builder() {
 
         }
-        
+
         public Builder(CoordinationMetaData state) {
             this.term = state.term;
             this.lastCommittedConfiguration = state.lastCommittedConfiguration;
@@ -350,7 +350,9 @@ public class CoordinationMetaData implements Writeable, ToXContentFragment {
          */
         public boolean hasQuorum(Collection<String> votes) {
             final HashSet<String> intersection = new HashSet<>(nodeIds);
+            // 仅保留投票了的节点
             intersection.retainAll(votes);
+            // 投票结果超过节点数一半
             return intersection.size() * 2 > nodeIds.size();
         }
 

@@ -120,20 +120,27 @@ public class JoinHelper {
 
         };
 
+        // 注册实际加入集群请求的处理器， 7.0以后的
         transportService.registerRequestHandler(JOIN_ACTION_NAME, ThreadPool.Names.GENERIC, false, false, JoinRequest::new,
+            // org.elasticsearch.cluster.coordination.Coordinator.handleJoinRequest, 处理join请求
             (request, channel, task) -> joinHandler.accept(request, transportJoinCallback(request, channel)));
 
+        // 7.0以前的join action
         transportService.registerRequestHandler(MembershipAction.DISCOVERY_JOIN_ACTION_NAME, MembershipAction.JoinRequest::new,
             ThreadPool.Names.GENERIC, false, false,
+            // org.elasticsearch.cluster.coordination.Coordinator.handleJoinRequest
             (request, channel, task) -> joinHandler.accept(new JoinRequest(request.getNode(), Optional.empty()), // treat as non-voting join
                 transportJoinCallback(request, channel)));
 
+        // 注册开始加入集群请求的处理器
         transportService.registerRequestHandler(START_JOIN_ACTION_NAME, Names.GENERIC, false, false,
             StartJoinRequest::new,
             (request, channel, task) -> {
+
                 final DiscoveryNode destination = request.getSourceNode();
                 sendJoinRequest(destination, Optional.of(joinLeaderInTerm.apply(request)));
                 channel.sendResponse(Empty.INSTANCE);
+
             });
 
         transportService.registerRequestHandler(VALIDATE_JOIN_ACTION_NAME,
@@ -260,8 +267,15 @@ public class JoinHelper {
         }
     }
 
+    /**
+     * 发送加入任期请求
+     * @param destination
+     * @param optionalJoin
+     * @param onCompletion
+     */
     public void sendJoinRequest(DiscoveryNode destination, Optional<Join> optionalJoin, Runnable onCompletion) {
         assert destination.isMasterNode() : "trying to join master-ineligible " + destination;
+        // 加入任期请求
         final JoinRequest joinRequest = new JoinRequest(transportService.getLocalNode(), optionalJoin);
         final Tuple<DiscoveryNode, JoinRequest> dedupKey = Tuple.tuple(destination, joinRequest);
         if (pendingOutgoingJoins.add(dedupKey)) {

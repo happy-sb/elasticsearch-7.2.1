@@ -105,7 +105,7 @@ public class ClusterBootstrapService {
                 throw new IllegalArgumentException(
                     "setting [" + INITIAL_MASTER_NODES_SETTING.getKey() + "] contains duplicates: " + initialMasterNodes);
             }
-            // 如果指定了节点的hosts, 则此参数为null, 否则默认3秒
+            // 如果显式指定了节点的hosts, 则此参数为null, 否则默认3秒 , 此参数是指延迟多久开启集群
             unconfiguredBootstrapTimeout = discoveryIsConfigured(settings) ? null : UNCONFIGURED_BOOTSTRAP_TIMEOUT_SETTING.get(settings);
         }
 
@@ -116,7 +116,7 @@ public class ClusterBootstrapService {
     }
 
     /**
-     * 发现服务是否配置了节点的hosts
+     * 发现服务是否显式配置了master候选者
      * @param settings
      * @return
      */
@@ -159,10 +159,11 @@ public class ClusterBootstrapService {
     }
 
     void scheduleUnconfiguredBootstrap() {
+        // 如果显式的指定了master
         if (unconfiguredBootstrapTimeout == null) {
             return;
         }
-        // 当前节点不是master, 才执行后续
+        // 当前节点不是master eligible, 才执行后续
         if (transportService.getLocalNode().isMasterNode() == false) {
             return;
         }

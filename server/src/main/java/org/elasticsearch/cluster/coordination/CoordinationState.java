@@ -204,6 +204,7 @@ public class CoordinationState {
 
     /**
      * May be called on receipt of a Join.
+     * 外部节点加入当前节点的任期
      *
      * @param join The Join received.
      * @return true iff this instance does not already have a join vote from the given source node for this term
@@ -250,8 +251,10 @@ public class CoordinationState {
             throw new CoordinationStateRejectedException("rejecting join since this node has not received its initial configuration yet");
         }
 
+        // 加入投票
         boolean added = joinVotes.addVote(join.getSourceNode());
         boolean prevElectionWon = electionWon;
+        // 是否选举胜出
         electionWon = isElectionQuorum(joinVotes);
         assert !prevElectionWon || electionWon; // we cannot go from won to not won
         logger.debug("handleJoin: added join {} from [{}] for election, electionWon={} lastAcceptedTerm={} lastAcceptedVersion={}", join,
@@ -521,6 +524,11 @@ public class CoordinationState {
             nodes = new HashMap<>();
         }
 
+        /**
+         * 是否选举成功
+         * @param configuration
+         * @return
+         */
         public boolean isQuorum(VotingConfiguration configuration) {
             return configuration.hasQuorum(nodes.keySet());
         }
