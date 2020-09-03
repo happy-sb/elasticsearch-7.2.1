@@ -111,6 +111,7 @@ public class QueryPhase implements SearchPhase {
         // here to make sure it happens during the QUERY phase
         aggregationPhase.preProcess(searchContext);
         final ContextIndexSearcher searcher = searchContext.searcher();
+        // 执行
         boolean rescore = execute(searchContext, searchContext.searcher(), searcher::setCheckCancelled);
 
         if (rescore) { // only if we do a regular search
@@ -144,6 +145,7 @@ public class QueryPhase implements SearchPhase {
             assert query == searcher.rewrite(query); // already rewritten
 
             final ScrollContext scrollContext = searchContext.scrollContext();
+            // 是否有scroll
             if (scrollContext != null) {
                 if (scrollContext.totalHits == null) {
                     // first round
@@ -271,6 +273,7 @@ public class QueryPhase implements SearchPhase {
             }
 
             try {
+                // 使用Lucene的IndexSearcher检索
                 searcher.search(query, queryCollector);
             } catch (EarlyTerminatingCollector.EarlyTerminationException e) {
                 queryResult.terminatedEarly(true);

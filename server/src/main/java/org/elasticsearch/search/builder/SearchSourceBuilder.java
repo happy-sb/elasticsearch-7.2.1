@@ -1094,13 +1094,17 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
                             parser.getTokenLocation());
                 }
             } else if (token == XContentParser.Token.START_OBJECT) {
+                // 构建queryBuilder, 比如RangeQueryBuilder,
                 if (QUERY_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
                     queryBuilder = parseInnerQueryBuilder(parser);
-                } else if (POST_FILTER_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
+                }
+                else if (POST_FILTER_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
                     postQueryBuilder = parseInnerQueryBuilder(parser);
-                } else if (_SOURCE_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
+                }
+                else if (_SOURCE_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
                     fetchSourceContext = FetchSourceContext.fromXContent(parser);
-                } else if (SCRIPT_FIELDS_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
+                }
+                else if (SCRIPT_FIELDS_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
                     scriptFields = new ArrayList<>();
                     while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
                         scriptFields.add(new ScriptField(parser));

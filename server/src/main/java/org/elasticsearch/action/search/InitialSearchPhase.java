@@ -57,6 +57,10 @@ abstract class InitialSearchPhase<FirstResult extends SearchPhaseResult> extends
     private final int maxConcurrentRequestsPerNode;
     private final Executor executor;
     private final Map<String, PendingExecutions> pendingExecutionsPerNode = new ConcurrentHashMap<>();
+    /**
+     * 是否需要限制并发请求
+     * 如果每个node的最大请求是数 < 分片数量， 则限流； 否则不限量
+     */
     private final boolean throttleConcurrentRequests;
 
     InitialSearchPhase(String name, SearchRequest request, GroupShardsIterator<SearchShardIterator> shardsIts, Logger logger,
@@ -133,6 +137,7 @@ abstract class InitialSearchPhase<FirstResult extends SearchPhaseResult> extends
         }
         if (shardsIts.size() > 0) {
             assert request.allowPartialSearchResults() != null : "SearchRequest missing setting for allowPartialSearchResults";
+            // 不允许部分结果，也就是部分shard检索失败，部分成功，这种情况下不需要结果
             if (request.allowPartialSearchResults() == false) {
                 final StringBuilder missingShards = new StringBuilder();
                 // Fail-fast verification of all shards being available
@@ -145,6 +150,7 @@ abstract class InitialSearchPhase<FirstResult extends SearchPhaseResult> extends
                         missingShards.append(shardRoutings.shardId());
                     }
                 }
+                // 有shard不可用，不允许部分结果形式
                 if (missingShards.length() >0) {
                     //Status red - shard is missing all copies and would produce partial results for an index search
                     final String msg = "Search rejected due to missing shards ["+ missingShards +
@@ -253,6 +259,7 @@ abstract class InitialSearchPhase<FirstResult extends SearchPhaseResult> extends
             final PendingExecutions pendingExecutions = throttleConcurrentRequests ?
                 pendingExecutionsPerNode.computeIfAbsent(shard.currentNodeId(), n -> new PendingExecutions(maxConcurrentRequestsPerNode))
                 : null;
+
             Runnable r = () -> {
                 final Thread thread = Thread.currentThread();
                 try {

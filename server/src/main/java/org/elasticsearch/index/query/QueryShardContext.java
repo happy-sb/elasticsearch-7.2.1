@@ -290,6 +290,7 @@ public class QueryShardContext extends QueryRewriteContext {
 
     public ParsedQuery toQuery(QueryBuilder queryBuilder) {
         return toQuery(queryBuilder, q -> {
+            // 构建query，比如 MatchAllDocsQuery IndexOrDocValuesQuery
             Query query = q.toQuery(this);
             if (query == null) {
                 query = Queries.newMatchNoDocsQuery("No query left after rewrite.");

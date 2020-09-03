@@ -122,6 +122,7 @@ import static org.elasticsearch.common.unit.TimeValue.timeValueMillis;
 import static org.elasticsearch.common.unit.TimeValue.timeValueMinutes;
 
 public class SearchService extends AbstractLifecycleComponent implements IndexEventListener {
+
     private static final Logger logger = LogManager.getLogger(SearchService.class);
 
     // we can have 5 minutes here, since we make sure to clean with search requests and when shard/index closes
@@ -133,9 +134,8 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
         Setting.positiveTimeSetting("search.keep_alive_interval", timeValueMinutes(1), Property.NodeScope);
 
     /**
-     * Enables low-level, frequent search cancellation checks. Enabling low-level checks will make long running searches to react
-     * to the cancellation request faster. However, since it will produce more cancellation checks it might slow the search performance
-     * down.
+     * Enables low-level, frequent search cancellation checks. Enabling low-level checks will make long running searches to react to the cancellation request
+     * faster. However, since it will produce more cancellation checks it might slow the search performance down.
      */
     public static final Setting<Boolean> LOW_LEVEL_CANCELLATION_SETTING =
         Setting.boolSetting("search.low_level_cancellation", false, Property.Dynamic, Property.NodeScope);
@@ -144,7 +144,7 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
     public static final Setting<TimeValue> DEFAULT_SEARCH_TIMEOUT_SETTING =
         Setting.timeSetting("search.default_search_timeout", NO_TIMEOUT, Property.Dynamic, Property.NodeScope);
     public static final Setting<Boolean> DEFAULT_ALLOW_PARTIAL_SEARCH_RESULTS =
-            Setting.boolSetting("search.default_allow_partial_results", true, Property.Dynamic, Property.NodeScope);
+        Setting.boolSetting("search.default_allow_partial_results", true, Property.Dynamic, Property.NodeScope);
 
     public static final Setting<Integer> MAX_OPEN_SCROLL_CONTEXT =
         Setting.intSetting("search.max_open_scroll_context", 500, 0, Property.Dynamic, Property.NodeScope);
@@ -219,7 +219,7 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
 
         defaultAllowPartialSearchResults = DEFAULT_ALLOW_PARTIAL_SEARCH_RESULTS.get(settings);
         clusterService.getClusterSettings().addSettingsUpdateConsumer(DEFAULT_ALLOW_PARTIAL_SEARCH_RESULTS,
-                this::setDefaultAllowPartialSearchResults);
+            this::setDefaultAllowPartialSearchResults);
 
         maxOpenScrollContext = MAX_OPEN_SCROLL_CONTEXT.get(settings);
         clusterService.getClusterSettings().addSettingsUpdateConsumer(MAX_OPEN_SCROLL_CONTEXT, this::setMaxOpenScrollContext);
@@ -336,6 +336,13 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
         }
     }
 
+    /**
+     * 执行query请求
+     *
+     * @param request
+     * @param task
+     * @param listener
+     */
     public void executeQueryPhase(ShardSearchRequest request, SearchTask task, ActionListener<SearchPhaseResult> listener) {
         rewriteShardRequest(request, ActionListener.map(listener, r -> executeQueryPhase(r, task)));
     }
@@ -350,6 +357,7 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
     }
 
     private SearchPhaseResult executeQueryPhase(ShardSearchRequest request, SearchTask task) throws Exception {
+        // 构建context, 实例化Query类型
         final SearchContext context = createAndPutContext(request);
         context.incRef();
         try {
@@ -357,6 +365,7 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
             final long afterQueryTime;
             try (SearchOperationListenerExecutor executor = new SearchOperationListenerExecutor(context)) {
                 contextProcessing(context);
+                // 加载或者执行query阶段
                 loadOrExecuteQueryPhase(request, context);
                 if (context.queryResult().hasSearchContext() == false && context.scrollContext() == null) {
                     freeContext(context.id());
@@ -373,7 +382,7 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
             // execution exception can happen while loading the cache, strip it
             if (e instanceof ExecutionException) {
                 e = (e.getCause() == null || e.getCause() instanceof Exception) ?
-                    (Exception) e.getCause() : new ElasticsearchException(e.getCause());
+                    (Exception)e.getCause() : new ElasticsearchException(e.getCause());
             }
             logger.trace("Query phase failed", e);
             processFailure(context, e);
@@ -384,7 +393,7 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
     }
 
     private QueryFetchSearchResult executeFetchPhase(SearchContext context, long afterQueryTime) {
-        try (SearchOperationListenerExecutor executor = new SearchOperationListenerExecutor(context, true, afterQueryTime)){
+        try (SearchOperationListenerExecutor executor = new SearchOperationListenerExecutor(context, true, afterQueryTime)) {
             shortcutDocIdsToLoad(context);
             fetchPhase.execute(context);
             if (fetchPhaseShouldFreeContext(context)) {
@@ -475,7 +484,7 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
             final SearchContext context = findContext(request.id(), request);
             context.setTask(task);
             context.incRef();
-            try (SearchOperationListenerExecutor executor = new SearchOperationListenerExecutor(context)){
+            try (SearchOperationListenerExecutor executor = new SearchOperationListenerExecutor(context)) {
                 contextProcessing(context);
                 processScroll(request, context);
                 queryPhase.execute(context);
@@ -546,7 +555,7 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
                     maxOpenScrollContext + "]. " + "This limit can be set by changing the ["
                     + MAX_OPEN_SCROLL_CONTEXT.getKey() + "] setting.");
         }
-
+        // 创建Context,实例化Lucene的Query类型
         SearchContext context = createContext(request);
         onNewContext(context);
         boolean success = false;
@@ -581,6 +590,13 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
         }
     }
 
+    /**
+     * 构建Context
+     *
+     * @param request
+     * @return
+     * @throws IOException
+     */
     final SearchContext createContext(ShardSearchRequest request) throws IOException {
         final DefaultSearchContext context = createSearchContext(request, defaultSearchTimeout);
         try {
@@ -588,6 +604,7 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
                 context.scrollContext(new ScrollContext());
                 context.scrollContext().scroll = request.scroll();
             }
+            // 解析query里的source, 实例化Lucene的Query对象
             parseSource(context, request.source());
 
             // if the from and size are still not set, default them
@@ -600,6 +617,7 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
 
             // pre process
             dfsPhase.preProcess(context);
+            // 确定用Lucene的哪个Query，比如MatchAllDocsQuery, IndexOrDocValuesQuery等等
             queryPhase.preProcess(context);
             fetchPhase.preProcess(context);
 
@@ -624,11 +642,11 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
 
     private DefaultSearchContext createSearchContext(ShardSearchRequest request, TimeValue timeout,
                                                      boolean assertAsyncActions, String source)
-            throws IOException {
+        throws IOException {
         IndexService indexService = indicesService.indexServiceSafe(request.shardId().getIndex());
         IndexShard indexShard = indexService.getShard(request.shardId().getId());
         SearchShardTarget shardTarget = new SearchShardTarget(clusterService.localNode().getId(),
-                indexShard.shardId(), request.getClusterAlias(), OriginalIndices.NONE);
+            indexShard.shardId(), request.getClusterAlias(), OriginalIndices.NONE);
         Engine.Searcher engineSearcher = indexShard.acquireSearcher(source);
 
         final DefaultSearchContext searchContext = new DefaultSearchContext(idGenerator.incrementAndGet(), request, shardTarget,
@@ -659,7 +677,6 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
             }
         }
     }
-
 
     public boolean freeContext(long id) {
         try (SearchContext context = removeContext(id)) {
@@ -738,6 +755,7 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
         context.from(source.from());
         context.size(source.size());
         Map<String, InnerHitContextBuilder> innerHitBuilders = new HashMap<>();
+        // 构建query
         if (source.query() != null) {
             InnerHitContextBuilder.extractInnerHits(source.query(), innerHitBuilders);
             context.parsedQuery(queryShardContext.toQuery(source.query()));
@@ -767,8 +785,8 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
         }
         context.trackScores(source.trackScores());
         if (source.trackTotalHitsUpTo() != null
-                && source.trackTotalHitsUpTo() != SearchContext.TRACK_TOTAL_HITS_ACCURATE
-                && context.scrollContext() != null) {
+            && source.trackTotalHitsUpTo() != SearchContext.TRACK_TOTAL_HITS_ACCURATE
+            && context.scrollContext() != null) {
             throw new SearchContextException(context, "disabling [track_total_hits] is not allowed in a scroll context");
         }
         if (source.trackTotalHitsUpTo() != null) {
@@ -818,8 +836,8 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
             List<DocValueFieldsContext.FieldAndFormat> docValueFields = new ArrayList<>();
             for (DocValueFieldsContext.FieldAndFormat format : source.docValueFields()) {
                 Collection<String> fieldNames = context.mapperService().simpleMatchToFullName(format.field);
-                for (String fieldName: fieldNames) {
-                   docValueFields.add(new DocValueFieldsContext.FieldAndFormat(fieldName, format.format));
+                for (String fieldName : fieldNames) {
+                    docValueFields.add(new DocValueFieldsContext.FieldAndFormat(fieldName, format.format));
                 }
             }
             int maxAllowedDocvalueFields = context.mapperService().getIndexSettings().getMaxDocvalueFields();
@@ -843,9 +861,9 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
             int maxAllowedScriptFields = context.mapperService().getIndexSettings().getMaxScriptFields();
             if (source.scriptFields().size() > maxAllowedScriptFields) {
                 throw new IllegalArgumentException(
-                        "Trying to retrieve too many script_fields. Must be less than or equal to: [" + maxAllowedScriptFields
-                                + "] but was [" + source.scriptFields().size() + "]. This limit can be set by changing the ["
-                                + IndexSettings.MAX_SCRIPT_FIELDS_SETTING.getKey() + "] index level setting.");
+                    "Trying to retrieve too many script_fields. Must be less than or equal to: [" + maxAllowedScriptFields
+                        + "] but was [" + source.scriptFields().size() + "]. This limit can be set by changing the ["
+                        + IndexSettings.MAX_SCRIPT_FIELDS_SETTING.getKey() + "] index level setting.");
             }
             for (org.elasticsearch.search.builder.SearchSourceBuilder.ScriptField field : source.scriptFields()) {
                 FieldScript.Factory factory = scriptService.compile(field.script(), FieldScript.CONTEXT);
@@ -906,8 +924,7 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
     }
 
     /**
-     * Shortcut ids to load, we load only "from" and up to "size". The phase controller
-     * handles this as well since the result is always size * shards for Q_T_F
+     * Shortcut ids to load, we load only "from" and up to "size". The phase controller handles this as well since the result is always size * shards for Q_T_F
      */
     private void shortcutDocIdsToLoad(SearchContext context) {
         final int[] docIdsToLoad;
@@ -962,8 +979,7 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
     }
 
     /**
-     * Returns the number of active contexts in this
-     * SearchService
+     * Returns the number of active contexts in this SearchService
      */
     public int getActiveContexts() {
         return this.activeContexts.size();
@@ -974,6 +990,7 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
     }
 
     class Reaper implements Runnable {
+
         @Override
         public void run() {
             final long time = threadPool.relativeTimeInMillis();
@@ -998,9 +1015,8 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
     }
 
     /**
-     * This method does a very quick rewrite of the query and returns true if the query can potentially match any documents.
-     * This method can have false positives while if it returns <code>false</code> the query won't match any documents on the current
-     * shard.
+     * This method does a very quick rewrite of the query and returns true if the query can potentially match any documents. This method can have false
+     * positives while if it returns <code>false</code> the query won't match any documents on the current shard.
      */
     public boolean canMatch(ShardSearchRequest request) throws IOException {
         assert request.searchType() == SearchType.QUERY_THEN_FETCH : "unexpected search type: " + request.searchType();
@@ -1014,7 +1030,6 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
         }
     }
 
-
     public void canMatch(ShardSearchRequest request, ActionListener<CanMatchResponse> listener) {
         try {
             listener.onResponse(new CanMatchResponse(canMatch(request)));
@@ -1024,9 +1039,9 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
     }
 
     /**
-     * Returns true iff the given search source builder can be early terminated by rewriting to a match none query. Or in other words
-     * if the execution of the search request can be early terminated without executing it. This is for instance not possible if
-     * a global aggregation is part of this request or if there is a suggest builder present.
+     * Returns true iff the given search source builder can be early terminated by rewriting to a match none query. Or in other words if the execution of the
+     * search request can be early terminated without executing it. This is for instance not possible if a global aggregation is part of this request or if
+     * there is a suggest builder present.
      */
     public static boolean canRewriteToMatchNone(SearchSourceBuilder source) {
         if (source == null || source.query() == null || source.query() instanceof MatchAllQueryBuilder || source.suggest() != null) {
@@ -1072,10 +1087,12 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
 
     public InternalAggregation.ReduceContext createReduceContext(boolean finalReduce) {
         return new InternalAggregation.ReduceContext(bigArrays, scriptService,
-            finalReduce ? multiBucketConsumerService.create() : bucketCount -> {}, finalReduce);
+            finalReduce ? multiBucketConsumerService.create() : bucketCount -> {
+            }, finalReduce);
     }
 
     public static final class CanMatchResponse extends SearchPhaseResult {
+
         private boolean canMatch;
 
         public CanMatchResponse(StreamInput in) throws IOException {
@@ -1104,10 +1121,11 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
     }
 
     /**
-     * This helper class ensures we only execute either the success or the failure path for {@link SearchOperationListener}.
-     * This is crucial for some implementations like {@link org.elasticsearch.index.search.stats.ShardSearchStats}.
+     * This helper class ensures we only execute either the success or the failure path for {@link SearchOperationListener}. This is crucial for some
+     * implementations like {@link org.elasticsearch.index.search.stats.ShardSearchStats}.
      */
     private static final class SearchOperationListenerExecutor implements AutoCloseable {
+
         private final SearchOperationListener listener;
         private final SearchContext context;
         private final long time;

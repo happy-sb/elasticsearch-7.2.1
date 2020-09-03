@@ -304,6 +304,7 @@ public abstract class AbstractQueryBuilder<QB extends AbstractQueryBuilder<QB>> 
         if (parser.currentToken() != XContentParser.Token.FIELD_NAME) {
             throw new ParsingException(parser.getTokenLocation(), "[_na] query malformed, no field after start_object");
         }
+        // 假设是区间查询，则"range"
         String queryName = parser.currentName();
         // move to the next START_OBJECT
         if (parser.nextToken() != XContentParser.Token.START_OBJECT) {
@@ -311,6 +312,7 @@ public abstract class AbstractQueryBuilder<QB extends AbstractQueryBuilder<QB>> 
         }
         QueryBuilder result;
         try {
+            // 构建queryBuilder, 比如 RangeQueryBuilder
             result = parser.namedObject(QueryBuilder.class, queryName, null);
         } catch (NamedObjectNotFoundException e) {
             // Preserve the error message from 5.0 until we have a compellingly better message so we don't break BWC.
