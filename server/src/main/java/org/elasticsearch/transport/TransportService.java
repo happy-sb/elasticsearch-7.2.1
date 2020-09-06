@@ -231,8 +231,12 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
 
     @Override
     protected void doStart() {
+        // 设置当前类为消息监听器
         transport.setMessageListener(this);
+
         connectionManager.addListener(this);
+
+        // SecurityNetty4Transport
         transport.start();
         if (transport.boundAddress() != null && logger.isInfoEnabled()) {
             logger.info("{}", transport.boundAddress());

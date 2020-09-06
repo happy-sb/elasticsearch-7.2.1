@@ -101,6 +101,9 @@ public class Netty4Transport extends TcpTransport {
 
 
     private final RecvByteBufAllocator recvByteBufAllocator;
+    /**
+     * 工作线程数，默认2*物理线程数
+     */
     private final int workerCount;
     private final ByteSizeValue receivePredictorMin;
     private final ByteSizeValue receivePredictorMax;
@@ -135,9 +138,11 @@ public class Netty4Transport extends TcpTransport {
         boolean success = false;
         try {
             ThreadFactory threadFactory = daemonThreadFactory(settings, TRANSPORT_WORKER_THREAD_NAME_PREFIX);
+            // 工作线程数默认2*物理线程数
             eventLoopGroup = new NioEventLoopGroup(workerCount, threadFactory);
             // 创建 client 的bootstrap
             clientBootstrap = createClientBootstrap(eventLoopGroup);
+            // 一般不存在此配置
             if (NetworkService.NETWORK_SERVER.get(settings)) {
                 // 每一份配置生成一个serverBootstrap, 放进 : serverBootstraps.put(name, serverBootstrap);
                 for (ProfileSettings profileSettings : profileSettings) {
@@ -163,23 +168,25 @@ public class Netty4Transport extends TcpTransport {
         final Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(eventLoopGroup);
         bootstrap.channel(NioSocketChannel.class);
-
+        // 小包无延迟
         bootstrap.option(ChannelOption.TCP_NODELAY, TransportSettings.TCP_NO_DELAY.get(settings));
+        // 保持长连接
         bootstrap.option(ChannelOption.SO_KEEPALIVE, TransportSettings.TCP_KEEP_ALIVE.get(settings));
-
+        // 发送缓冲区设置, 最好不要设置, 由系统自动调整
         final ByteSizeValue tcpSendBufferSize = TransportSettings.TCP_SEND_BUFFER_SIZE.get(settings);
         if (tcpSendBufferSize.getBytes() > 0) {
             bootstrap.option(ChannelOption.SO_SNDBUF, Math.toIntExact(tcpSendBufferSize.getBytes()));
         }
-
+        // 接受缓冲区设置, 最好不要设置, 由系统自动调整
         final ByteSizeValue tcpReceiveBufferSize = TransportSettings.TCP_RECEIVE_BUFFER_SIZE.get(settings);
         if (tcpReceiveBufferSize.getBytes() > 0) {
             bootstrap.option(ChannelOption.SO_RCVBUF, Math.toIntExact(tcpReceiveBufferSize.getBytes()));
         }
-
+        // 接受缓冲器内存分配器
         bootstrap.option(ChannelOption.RCVBUF_ALLOCATOR, recvByteBufAllocator);
 
         final boolean reuseAddress = TransportSettings.TCP_REUSE_ADDRESS.get(settings);
+        // 是否复用端口
         bootstrap.option(ChannelOption.SO_REUSEADDR, reuseAddress);
 
         return bootstrap;

@@ -141,6 +141,9 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
 
     private QueryBuilder queryBuilder;
 
+    /**
+     * Filter
+     */
     private QueryBuilder postQueryBuilder;
 
     private int from = -1;

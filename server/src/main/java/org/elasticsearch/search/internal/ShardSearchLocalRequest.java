@@ -242,6 +242,7 @@ public class ShardSearchLocalRequest implements ShardSearchRequest {
     @Override
     public BytesReference cacheKey() throws IOException {
         BytesStreamOutput out = new BytesStreamOutput();
+        // 构建缓存的key
         this.innerWriteTo(out, true);
         // copy it over, most requests are small, we might as well copy to make sure we are not sliced...
         // we could potentially keep it without copying, but then pay the price of extra unused bytes up to a page

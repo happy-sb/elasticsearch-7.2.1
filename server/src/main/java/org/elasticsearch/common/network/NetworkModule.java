@@ -127,6 +127,7 @@ public final class NetworkModule {
             }
             Map<String, Supplier<Transport>> transportFactory = plugin.getTransports(settings, threadPool, pageCacheRecycler,
                 circuitBreakerService, namedWriteableRegistry, networkService);
+
             for (Map.Entry<String, Supplier<Transport>> entry : transportFactory.entrySet()) {
                 registerTransport(entry.getKey(), entry.getValue());
             }
@@ -198,8 +199,13 @@ public final class NetworkModule {
         return factory;
     }
 
+    /**
+     * 设置集群间transport 的方式
+     * @return
+     */
     public Supplier<Transport> getTransportSupplier() {
         final String name;
+        // 默认是securityNetty4
         if (TRANSPORT_TYPE_SETTING.exists(settings)) {
             name = TRANSPORT_TYPE_SETTING.get(settings);
         } else {

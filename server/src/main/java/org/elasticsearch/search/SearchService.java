@@ -327,7 +327,9 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
      * Try to load the query results from the cache or execute the query phase directly if the cache cannot be used.
      */
     private void loadOrExecuteQueryPhase(final ShardSearchRequest request, final SearchContext context) throws Exception {
+        // Scroll, DFS 不能缓存
         final boolean canCache = indicesService.canCache(request, context);
+        // 冻结上下文
         context.getQueryShardContext().freezeContext();
         if (canCache) {
             indicesService.loadIntoContext(request, context, queryPhase);
@@ -367,6 +369,7 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
                 contextProcessing(context);
                 // 加载或者执行query阶段
                 loadOrExecuteQueryPhase(request, context);
+
                 if (context.queryResult().hasSearchContext() == false && context.scrollContext() == null) {
                     freeContext(context.id());
                 } else {
@@ -760,6 +763,7 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
             InnerHitContextBuilder.extractInnerHits(source.query(), innerHitBuilders);
             context.parsedQuery(queryShardContext.toQuery(source.query()));
         }
+        // 设置Filter
         if (source.postFilter() != null) {
             InnerHitContextBuilder.extractInnerHits(source.postFilter(), innerHitBuilders);
             context.parsedPostFilter(queryShardContext.toQuery(source.postFilter()));

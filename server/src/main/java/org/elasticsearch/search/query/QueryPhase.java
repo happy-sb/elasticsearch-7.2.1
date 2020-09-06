@@ -70,6 +70,7 @@ import static org.elasticsearch.search.query.TopDocsCollectorContext.createTopDo
 
 
 /**
+ * 检索阶段
  * Query phase of a search request, used to run the query and get back from each shard information about the matching documents
  * (document ids and score or sort criteria) so that matches can be reduced on the coordinating node
  */
@@ -93,6 +94,7 @@ public class QueryPhase implements SearchPhase {
 
     @Override
     public void execute(SearchContext searchContext) throws QueryPhaseExecutionException {
+        // 如果仅仅是提示/启发阶段,也就是看看搜索请求是否正常，能否检索到数据, 不是真要执行检索
         if (searchContext.hasOnlySuggest()) {
             suggestPhase.execute(searchContext);
             // TODO: fix this once we can fetch docs for suggestions
@@ -182,6 +184,7 @@ public class QueryPhase implements SearchPhase {
             final LinkedList<QueryCollectorContext> collectors = new LinkedList<>();
             // whether the chain contains a collector that filters documents
             boolean hasFilterCollector = false;
+            // 如果收集的数据条数达到了searchContext.terminateAfter()，提早结束检索
             if (searchContext.terminateAfter() != SearchContext.DEFAULT_TERMINATE_AFTER) {
                 // add terminate_after before the filter collectors
                 // it will only be applied on documents accepted by these filter collectors
@@ -189,9 +192,10 @@ public class QueryPhase implements SearchPhase {
                 // this collector can filter documents during the collection
                 hasFilterCollector = true;
             }
+            // Post_Filter 起作用的地方
             if (searchContext.parsedPostFilter() != null) {
-                // add post filters before aggregations
-                // it will only be applied to top hits
+                // add post filters before aggregations  在 aggregations 之前添加Filter
+                // it will only be applied to top hits  他们仅仅会作用在TopN 命中的doc
                 collectors.add(createFilteredCollectorContext(searcher, searchContext.parsedPostFilter().query()));
                 // this collector can filter documents during the collection
                 hasFilterCollector = true;
@@ -261,6 +265,7 @@ public class QueryPhase implements SearchPhase {
             // create the top docs collector last when the other collectors are known
             final TopDocsCollectorContext topDocsFactory = createTopDocsCollectorContext(searchContext, reader, hasFilterCollector);
             // add the top docs collector, the first collector context in the chain
+            // 将TopN 对应的 collector 添加到  collectors chain  的第一个元素
             collectors.addFirst(topDocsFactory);
 
             final Collector queryCollector;

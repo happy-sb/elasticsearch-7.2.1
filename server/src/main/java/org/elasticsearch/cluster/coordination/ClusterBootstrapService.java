@@ -261,6 +261,7 @@ public class ClusterBootstrapService {
             final Set<DiscoveryNode> matchingNodes
                 = nodes.stream().filter(n -> matchesRequirement(n, bootstrapRequirement)).collect(Collectors.toSet());
 
+
             if (matchingNodes.size() == 0) {
                 unmatchedRequirements.add(bootstrapRequirement);
             }

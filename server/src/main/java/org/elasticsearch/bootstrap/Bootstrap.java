@@ -279,7 +279,9 @@ final class Bootstrap {
      *
      */
     private void start() throws NodeValidationException {
+        // 节点启动
         node.start();
+        // 保活线程启动
         keepAliveThread.start();
     }
 

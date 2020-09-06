@@ -59,6 +59,10 @@ network.host: 127.0.0.1
 http.port: 9200
 
 node.master: true
+
+# 是否是当节点集群
+# discovery.type: single-node
+
 #
 # For more information, consult the network module documentation.
 #

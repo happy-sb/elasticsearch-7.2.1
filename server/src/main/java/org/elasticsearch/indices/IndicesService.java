@@ -1309,18 +1309,21 @@ public class IndicesService extends AbstractLifecycleComponent
         final DirectoryReader directoryReader = context.searcher().getDirectoryReader();
 
         boolean[] loadedFromCache = new boolean[] { true };
-        BytesReference bytesReference = cacheShardLevelResult(context.indexShard(), directoryReader, request.cacheKey(),
-            () -> "Shard: " + request.shardId() + "\nSource:\n" + request.source(),
-            out -> {
+
+        Supplier<String> cacheKeyRenderer = () -> "Shard: " + request.shardId() + "\nSource:\n" + request.source();
+
+        Consumer<StreamOutput> loader = out -> {
+            // 执行检索阶段
             queryPhase.execute(context);
             try {
                 context.queryResult().writeToNoId(out);
-
             } catch (IOException e) {
                 throw new AssertionError("Could not serialize response", e);
             }
             loadedFromCache[0] = false;
-        });
+        };
+        // 缓存分片级别的结果， 缓存的key 是一个BytesReference, 字节数组引用, 字节数组由请求内容和上下文数据合成
+        BytesReference bytesReference = cacheShardLevelResult(context.indexShard(), directoryReader, request.cacheKey(), cacheKeyRenderer, loader);
 
         if (loadedFromCache[0]) {
             // restore the cached query result into the context
@@ -1328,7 +1331,9 @@ public class IndicesService extends AbstractLifecycleComponent
             StreamInput in = new NamedWriteableAwareStreamInput(bytesReference.streamInput(), namedWriteableRegistry);
             result.readFromWithId(context.id(), in);
             result.setSearchShardTarget(context.shardTarget());
-        } else if (context.queryResult().searchTimedOut()) {
+        }
+        // 如果不缓存未命中, 且检索超时
+        else if (context.queryResult().searchTimedOut()) {
             // we have to invalidate the cache entry if we cached a query result form a request that timed out.
             // we can't really throw exceptions in the loading part to signal a timed out search to the outside world since if there are
             // multiple requests that wait for the cache entry to be calculated they'd fail all with the same exception.
