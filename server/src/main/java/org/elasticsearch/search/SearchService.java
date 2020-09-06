@@ -358,6 +358,14 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
         });
     }
 
+    /**
+     * 执行检索阶段
+     *
+     * @param request
+     * @param task
+     * @return
+     * @throws Exception
+     */
     private SearchPhaseResult executeQueryPhase(ShardSearchRequest request, SearchTask task) throws Exception {
         // 构建context, 实例化Query类型
         final SearchContext context = createAndPutContext(request);
