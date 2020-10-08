@@ -43,9 +43,12 @@ public abstract class LeafBucketCollector implements LeafCollector {
     };
 
     public static LeafBucketCollector wrap(Iterable<LeafBucketCollector> collectors) {
+
         final Stream<LeafBucketCollector> actualCollectors =
                 StreamSupport.stream(collectors.spliterator(), false).filter(c -> c != NO_OP_COLLECTOR);
+
         final LeafBucketCollector[] colls = actualCollectors.toArray(size -> new LeafBucketCollector[size]);
+
         switch (colls.length) {
         case 0:
             return NO_OP_COLLECTOR;

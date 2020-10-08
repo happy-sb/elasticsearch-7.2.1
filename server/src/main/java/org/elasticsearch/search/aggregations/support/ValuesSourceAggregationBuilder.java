@@ -78,6 +78,9 @@ public abstract class ValuesSourceAggregationBuilder<VS extends ValuesSource, AB
 
     private final ValuesSourceType valuesSourceType;
     private final ValueType targetValueType;
+    /**
+     * Field名称
+     */
     private String field = null;
     private Script script = null;
     private ValueType valueType = null;
@@ -118,6 +121,7 @@ public abstract class ValuesSourceAggregationBuilder<VS extends ValuesSource, AB
         assert false == serializeTargetValueType() : "Wrong read constructor called for subclass that provides its targetValueType";
         this.valuesSourceType = valuesSourceType;
         this.targetValueType = targetValueType;
+        // 读取数据
         read(in);
     }
 

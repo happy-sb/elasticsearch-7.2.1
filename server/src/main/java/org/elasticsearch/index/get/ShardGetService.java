@@ -180,6 +180,7 @@ public final class ShardGetService extends AbstractIndexShardComponent {
 
         Engine.GetResult get = null;
         if (type != null) {
+            // 通过"_id" 的倒排索引获取到其在哪个Segment，且其的docID和version
             Term uidTerm = new Term(IdFieldMapper.NAME, Uid.encodeId(id));
             get = indexShard.get(new Engine.Get(realtime, readFromTranslog, type, id, uidTerm)
                     .version(version).versionType(versionType).setIfSeqNo(ifSeqNo).setIfPrimaryTerm(ifPrimaryTerm));
@@ -193,6 +194,7 @@ public final class ShardGetService extends AbstractIndexShardComponent {
         }
 
         try {
+            // 通过docID 和 Segment 的reader读取数据
             // break between having loaded it from translog (so we only have _source), and having a document to load
             return innerGetLoadFromStoredFields(type, id, gFields, fetchSourceContext, get, mapperService);
         } finally {
@@ -208,6 +210,7 @@ public final class ShardGetService extends AbstractIndexShardComponent {
         FieldsVisitor fieldVisitor = buildFieldsVisitors(gFields, fetchSourceContext);
         if (fieldVisitor != null) {
             try {
+                // 通过docID读取数据
                 docIdAndVersion.reader.document(docIdAndVersion.docId, fieldVisitor);
             } catch (IOException e) {
                 throw new ElasticsearchException("Failed to get type [" + type + "] and id [" + id + "]", e);

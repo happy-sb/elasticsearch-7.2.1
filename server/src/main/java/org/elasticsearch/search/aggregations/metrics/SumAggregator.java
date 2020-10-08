@@ -76,23 +76,33 @@ class SumAggregator extends NumericMetricsAggregator.SingleValue {
                 compensations = bigArrays.grow(compensations, bucket + 1);
 
                 if (values.advanceExact(doc)) {
+                    // 当前bucket里的docValues个数, 当前属性可能是数组, 如果不是此值是1, 否则为数组的元素个数
                     final int valuesCount = values.docValueCount();
                     // Compute the sum of double values with Kahan summation algorithm which is more
                     // accurate than naive summation.
                     double sum = sums.get(bucket);
+                    // 补偿值
                     double compensation = compensations.get(bucket);
+
                     for (int i = 0; i < valuesCount; i++) {
+                        // docValue
                         double value = values.nextValue();
+                        // 如果value值超出了Double的界限, 是正负无穷大
                         if (Double.isFinite(value) == false) {
                             sum += value;
-                        } else if (Double.isFinite(sum)) {
+                        }
+                        // 如果sum是正常的Double
+                        else if (Double.isFinite(sum)) {
+                            // docValue - 补偿值
                             double corrected = value - compensation;
                             double newSum = sum + corrected;
                             compensation = (newSum - sum) - corrected;
                             sum = newSum;
                         }
                     }
+                    // 重新设置补偿值
                     compensations.set(bucket, compensation);
+                    // 重新设置sum值
                     sums.set(bucket, sum);
                 }
             }

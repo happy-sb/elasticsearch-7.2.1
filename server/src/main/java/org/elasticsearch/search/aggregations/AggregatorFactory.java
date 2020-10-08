@@ -36,6 +36,7 @@ import java.util.Map;
 public abstract class AggregatorFactory<AF extends AggregatorFactory<AF>> {
 
     public static final class MultiBucketAggregatorWrapper extends Aggregator {
+
         private final BigArrays bigArrays;
         private final Aggregator parent;
         private final AggregatorFactory<?> factory;
@@ -44,7 +45,7 @@ public abstract class AggregatorFactory<AF extends AggregatorFactory<AF>> {
         ObjectArray<LeafBucketCollector> collectors;
 
         MultiBucketAggregatorWrapper(BigArrays bigArrays, SearchContext context, Aggregator parent, AggregatorFactory<?> factory,
-                Aggregator first) {
+                                     Aggregator first) {
             this.bigArrays = bigArrays;
             this.parent = parent;
             this.factory = factory;
@@ -117,6 +118,12 @@ public abstract class AggregatorFactory<AF extends AggregatorFactory<AF>> {
                     this.scorer = scorer;
                 }
 
+                /**
+                 *
+                 * @param doc
+                 * @param bucket 初始时是0， {@link LeafBucketCollector#collect(int)}
+                 * @throws IOException
+                 */
                 @Override
                 public void collect(int doc, long bucket) throws IOException {
                     collectors = bigArrays.grow(collectors, bucket + 1);
@@ -130,6 +137,7 @@ public abstract class AggregatorFactory<AF extends AggregatorFactory<AF>> {
                             aggregator.preCollection();
                             aggregators.set(bucket, aggregator);
                         }
+                        // 通过Aggregator构建LeafBucketCollector
                         collector = aggregator.getLeafCollector(ctx);
                         if (scorer != null) {
                             // Passing a null scorer can cause unexpected NPE at a later time,
@@ -175,13 +183,11 @@ public abstract class AggregatorFactory<AF extends AggregatorFactory<AF>> {
     /**
      * Constructs a new aggregator factory.
      *
-     * @param name
-     *            The aggregation name
-     * @throws IOException
-     *             if an error occurs creating the factory
+     * @param name The aggregation name
+     * @throws IOException if an error occurs creating the factory
      */
     public AggregatorFactory(String name, SearchContext context, AggregatorFactory<?> parent,
-            AggregatorFactories.Builder subFactoriesBuilder, Map<String, Object> metaData) throws IOException {
+                             AggregatorFactories.Builder subFactoriesBuilder, Map<String, Object> metaData) throws IOException {
         this.name = name;
         this.context = context;
         this.parent = parent;
@@ -197,20 +203,17 @@ public abstract class AggregatorFactory<AF extends AggregatorFactory<AF>> {
     }
 
     protected abstract Aggregator createInternal(Aggregator parent, boolean collectsFromSingleBucket,
-            List<PipelineAggregator> pipelineAggregators, Map<String, Object> metaData) throws IOException;
+                                                 List<PipelineAggregator> pipelineAggregators, Map<String, Object> metaData) throws IOException;
 
     /**
      * Creates the aggregator
      *
-     * @param parent
-     *            The parent aggregator (if this is a top level factory, the
-     *            parent will be {@code null})
-     * @param collectsFromSingleBucket
-     *            If true then the created aggregator will only be collected
-     *            with {@code 0} as a bucket ordinal. Some factories can take
-     *            advantage of this in order to return more optimized
-     *            implementations.
-     *
+     * @param parent                   The parent aggregator (if this is a top level factory, the
+     *                                 parent will be {@code null})
+     * @param collectsFromSingleBucket If true then the created aggregator will only be collected
+     *                                 with {@code 0} as a bucket ordinal. Some factories can take
+     *                                 advantage of this in order to return more optimized
+     *                                 implementations.
      * @return The created aggregator
      */
     public final Aggregator create(Aggregator parent, boolean collectsFromSingleBucket) throws IOException {
@@ -227,7 +230,7 @@ public abstract class AggregatorFactory<AF extends AggregatorFactory<AF>> {
      * returns an aggregator that can collect any bucket.
      */
     protected static Aggregator asMultiBucketAggregator(final AggregatorFactory<?> factory, final SearchContext context,
-            final Aggregator parent) throws IOException {
+                                                        final Aggregator parent) throws IOException {
         final Aggregator first = factory.create(parent, true);
         final BigArrays bigArrays = context.bigArrays();
         return new MultiBucketAggregatorWrapper(bigArrays, context, parent, factory, first);

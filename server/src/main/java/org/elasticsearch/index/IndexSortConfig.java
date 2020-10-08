@@ -171,7 +171,7 @@ public final class IndexSortConfig {
         return sortSpecs.length > 0;
     }
 
-    /**
+    /**  构建Lucene 的 Sort
      * Builds the {@link Sort} order from the settings for this index
      * or returns null if this index has no sort.
      */

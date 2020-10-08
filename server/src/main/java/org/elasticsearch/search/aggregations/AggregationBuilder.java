@@ -25,6 +25,7 @@ import org.elasticsearch.common.io.stream.NamedWriteable;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.query.QueryRewriteContext;
+import org.elasticsearch.search.aggregations.metrics.SumAggregationBuilder;
 import org.elasticsearch.search.internal.SearchContext;
 
 import java.io.IOException;
@@ -37,6 +38,10 @@ import java.util.Map;
 public abstract class AggregationBuilder
         implements NamedWriteable, ToXContentFragment, BaseAggregationBuilder {
 
+    /**
+     * sum,avg,max 等等
+     * @see SumAggregationBuilder#NAME
+     */
     protected final String name;
     protected AggregatorFactories.Builder factoriesBuilder = AggregatorFactories.builder();
 

@@ -40,14 +40,22 @@ import java.io.IOException;
 import java.util.Map;
 
 public class SumAggregationBuilder extends ValuesSourceAggregationBuilder.LeafOnly<ValuesSource.Numeric, SumAggregationBuilder> {
+
     public static final String NAME = "sum";
 
     private static final ObjectParser<SumAggregationBuilder, Void> PARSER;
+
     static {
         PARSER = new ObjectParser<>(SumAggregationBuilder.NAME);
         ValuesSourceParserHelper.declareNumericFields(PARSER, true, true, false);
     }
 
+    /**
+     * @param aggregationName 自定义的aggs子从句的名称
+     * @param parser
+     * @return
+     * @throws IOException
+     */
     public static AggregationBuilder parse(String aggregationName, XContentParser parser) throws IOException {
         return PARSER.parse(parser, new SumAggregationBuilder(aggregationName), null);
     }
@@ -79,7 +87,7 @@ public class SumAggregationBuilder extends ValuesSourceAggregationBuilder.LeafOn
 
     @Override
     protected SumAggregatorFactory innerBuild(SearchContext context, ValuesSourceConfig<Numeric> config,
-            AggregatorFactory<?> parent, Builder subFactoriesBuilder) throws IOException {
+                                              AggregatorFactory<?> parent, Builder subFactoriesBuilder) throws IOException {
         return new SumAggregatorFactory(name, config, context, parent, subFactoriesBuilder, metaData);
     }
 
