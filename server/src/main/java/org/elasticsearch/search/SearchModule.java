@@ -362,27 +362,34 @@ public class SearchModule {
     }
 
     private void registerAggregations(List<SearchPlugin> plugins) {
+        // 平均值
         registerAggregation(new AggregationSpec(AvgAggregationBuilder.NAME, AvgAggregationBuilder::new, AvgAggregationBuilder::parse)
             .addResultReader(InternalAvg::new));
 
+        //
         registerAggregation(new AggregationSpec(WeightedAvgAggregationBuilder.NAME, WeightedAvgAggregationBuilder::new,
             WeightedAvgAggregationBuilder::parse).addResultReader(InternalWeightedAvg::new));
 
+        // 累计值
         registerAggregation(new AggregationSpec(SumAggregationBuilder.NAME, SumAggregationBuilder::new, SumAggregationBuilder::parse)
             .addResultReader(InternalSum::new));
 
+        // 最小值
         registerAggregation(new AggregationSpec(MinAggregationBuilder.NAME, MinAggregationBuilder::new, MinAggregationBuilder::parse)
             .addResultReader(InternalMin::new));
 
+        // 最大值
         registerAggregation(new AggregationSpec(MaxAggregationBuilder.NAME, MaxAggregationBuilder::new, MaxAggregationBuilder::parse)
             .addResultReader(InternalMax::new));
 
+        // 各种统计, count max min ......
         registerAggregation(new AggregationSpec(StatsAggregationBuilder.NAME, StatsAggregationBuilder::new, StatsAggregationBuilder::parse)
             .addResultReader(InternalStats::new));
 
         registerAggregation(new AggregationSpec(ExtendedStatsAggregationBuilder.NAME, ExtendedStatsAggregationBuilder::new,
             ExtendedStatsAggregationBuilder::parse).addResultReader(InternalExtendedStats::new));
 
+        // 值个数, 如果是数组则累计元素个数
         registerAggregation(new AggregationSpec(ValueCountAggregationBuilder.NAME, ValueCountAggregationBuilder::new,
             ValueCountAggregationBuilder::parse).addResultReader(InternalValueCount::new));
 
@@ -400,24 +407,30 @@ public class SearchModule {
             MedianAbsoluteDeviationAggregationBuilder::new, MedianAbsoluteDeviationAggregationBuilder::parse)
             .addResultReader(InternalMedianAbsoluteDeviation::new));
 
+        // 去重统计求和,先去重, 再统计
         registerAggregation(new AggregationSpec(CardinalityAggregationBuilder.NAME, CardinalityAggregationBuilder::new,
             CardinalityAggregationBuilder::parse).addResultReader(InternalCardinality::new));
 
+        // 全局统计, 忽略query条件
         registerAggregation(new AggregationSpec(GlobalAggregationBuilder.NAME, GlobalAggregationBuilder::new,
             GlobalAggregationBuilder::parse).addResultReader(InternalGlobal::new));
 
+        // 空值聚合, 也就是统计字段值为null的document
         registerAggregation(new AggregationSpec(MissingAggregationBuilder.NAME, MissingAggregationBuilder::new,
             MissingAggregationBuilder::parse).addResultReader(InternalMissing::new));
 
+        // filter 过滤
         registerAggregation(new AggregationSpec(FilterAggregationBuilder.NAME, FilterAggregationBuilder::new,
             FilterAggregationBuilder::parse).addResultReader(InternalFilter::new));
 
+        // filters, 有多个filter,多个bits
         registerAggregation(new AggregationSpec(FiltersAggregationBuilder.NAME, FiltersAggregationBuilder::new,
             FiltersAggregationBuilder::parse).addResultReader(InternalFilters::new));
 
         registerAggregation(new AggregationSpec(AdjacencyMatrixAggregationBuilder.NAME, AdjacencyMatrixAggregationBuilder::new,
             AdjacencyMatrixAggregationBuilder::parse).addResultReader(InternalAdjacencyMatrix::new));
 
+        // 采样统计
         registerAggregation(new AggregationSpec(SamplerAggregationBuilder.NAME, SamplerAggregationBuilder::new,
             SamplerAggregationBuilder::parse)
             .addResultReader(InternalSampler.NAME, InternalSampler::new)
