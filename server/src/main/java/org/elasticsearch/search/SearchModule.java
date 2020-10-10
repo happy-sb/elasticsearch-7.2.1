@@ -438,7 +438,9 @@ public class SearchModule {
 
         registerAggregation(new AggregationSpec(DiversifiedAggregationBuilder.NAME, DiversifiedAggregationBuilder::new,
                 DiversifiedAggregationBuilder::parse)
+
             /* Reuses result readers from SamplerAggregator*/);
+        // terms 聚合
         registerAggregation(new AggregationSpec(TermsAggregationBuilder.NAME, TermsAggregationBuilder::new,
             TermsAggregationBuilder::parse)
             .addResultReader(StringTerms.NAME, StringTerms::new)
@@ -455,15 +457,19 @@ public class SearchModule {
         registerAggregation(new AggregationSpec(SignificantTextAggregationBuilder.NAME, SignificantTextAggregationBuilder::new,
             SignificantTextAggregationBuilder.getParser(significanceHeuristicParserRegistry)));
 
+        // range 聚合, 比如统计全班分数在指定区间内的人数
         registerAggregation(new AggregationSpec(RangeAggregationBuilder.NAME, RangeAggregationBuilder::new,
             RangeAggregationBuilder::parse).addResultReader(InternalRange::new));
 
+        // date_range, 日期区间聚合
         registerAggregation(new AggregationSpec(DateRangeAggregationBuilder.NAME, DateRangeAggregationBuilder::new,
             DateRangeAggregationBuilder::parse).addResultReader(InternalDateRange::new));
 
+        // ip_range
         registerAggregation(new AggregationSpec(IpRangeAggregationBuilder.NAME, IpRangeAggregationBuilder::new,
             IpRangeAggregationBuilder::parse).addResultReader(InternalBinaryRange::new));
 
+        // histogram 直方图
         registerAggregation(new AggregationSpec(HistogramAggregationBuilder.NAME, HistogramAggregationBuilder::new,
             HistogramAggregationBuilder::parse).addResultReader(InternalHistogram::new));
 
@@ -473,6 +479,7 @@ public class SearchModule {
         registerAggregation(new AggregationSpec(AutoDateHistogramAggregationBuilder.NAME, AutoDateHistogramAggregationBuilder::new,
             AutoDateHistogramAggregationBuilder::parse).addResultReader(InternalAutoDateHistogram::new));
 
+        // geo_distance 地理位置距离
         registerAggregation(new AggregationSpec(GeoDistanceAggregationBuilder.NAME, GeoDistanceAggregationBuilder::new,
             GeoDistanceAggregationBuilder::parse).addResultReader(InternalGeoDistance::new));
 
@@ -482,12 +489,14 @@ public class SearchModule {
         registerAggregation(new AggregationSpec(GeoTileGridAggregationBuilder.NAME, GeoTileGridAggregationBuilder::new,
             GeoTileGridAggregationBuilder::parse).addResultReader(InternalGeoTileGrid::new));
 
+        // nested 嵌套查询
         registerAggregation(new AggregationSpec(NestedAggregationBuilder.NAME, NestedAggregationBuilder::new,
             NestedAggregationBuilder::parse).addResultReader(InternalNested::new));
 
         registerAggregation(new AggregationSpec(ReverseNestedAggregationBuilder.NAME, ReverseNestedAggregationBuilder::new,
             ReverseNestedAggregationBuilder::parse).addResultReader(InternalReverseNested::new));
 
+        // top_hits, 可以先用terms 分桶, 然后取每个桶的topN条数据, 要指定order
         registerAggregation(new AggregationSpec(TopHitsAggregationBuilder.NAME, TopHitsAggregationBuilder::new,
             TopHitsAggregationBuilder::parse).addResultReader(InternalTopHits::new));
 
@@ -523,12 +532,16 @@ public class SearchModule {
     }
 
     private void registerPipelineAggregations(List<SearchPlugin> plugins) {
+
+        //求导
         registerPipelineAggregation(new PipelineAggregationSpec(
             DerivativePipelineAggregationBuilder.NAME,
             DerivativePipelineAggregationBuilder::new,
             DerivativePipelineAggregator::new,
             DerivativePipelineAggregationBuilder::parse)
             .addResultReader(InternalDerivative::new));
+
+        // 指定bucket_path, 取最大的bucket值
         registerPipelineAggregation(new PipelineAggregationSpec(
             MaxBucketPipelineAggregationBuilder.NAME,
             MaxBucketPipelineAggregationBuilder::new,
@@ -536,12 +549,16 @@ public class SearchModule {
             MaxBucketPipelineAggregationBuilder.PARSER)
             // This bucket is used by many pipeline aggreations.
             .addResultReader(InternalBucketMetricValue.NAME, InternalBucketMetricValue::new));
+
+        // 指定bucket_path, 取最小的bucket值
         registerPipelineAggregation(new PipelineAggregationSpec(
                 MinBucketPipelineAggregationBuilder.NAME,
                 MinBucketPipelineAggregationBuilder::new,
                 MinBucketPipelineAggregator::new,
                 MinBucketPipelineAggregationBuilder.PARSER)
             /* Uses InternalBucketMetricValue */);
+
+        // 指定bucket_path, 求平均值
         registerPipelineAggregation(new PipelineAggregationSpec(
             AvgBucketPipelineAggregationBuilder.NAME,
             AvgBucketPipelineAggregationBuilder::new,
@@ -549,61 +566,75 @@ public class SearchModule {
             AvgBucketPipelineAggregationBuilder.PARSER)
             // This bucket is used by many pipeline aggreations.
             .addResultReader(InternalSimpleValue.NAME, InternalSimpleValue::new));
+
+        // 指定bucket_path, 求累加值
         registerPipelineAggregation(new PipelineAggregationSpec(
                 SumBucketPipelineAggregationBuilder.NAME,
                 SumBucketPipelineAggregationBuilder::new,
                 SumBucketPipelineAggregator::new,
                 SumBucketPipelineAggregationBuilder.PARSER)
             /* Uses InternalSimpleValue */);
+
+        // 统计指定bucket_path, 桶个数, 最大,最小,平均, 总和, 值
         registerPipelineAggregation(new PipelineAggregationSpec(
             StatsBucketPipelineAggregationBuilder.NAME,
             StatsBucketPipelineAggregationBuilder::new,
             StatsBucketPipelineAggregator::new,
             StatsBucketPipelineAggregationBuilder.PARSER)
             .addResultReader(InternalStatsBucket::new));
+
         registerPipelineAggregation(new PipelineAggregationSpec(
             ExtendedStatsBucketPipelineAggregationBuilder.NAME,
             ExtendedStatsBucketPipelineAggregationBuilder::new,
             ExtendedStatsBucketPipelineAggregator::new,
             new ExtendedStatsBucketParser())
             .addResultReader(InternalExtendedStatsBucket::new));
+
+        // 百分比
         registerPipelineAggregation(new PipelineAggregationSpec(
             PercentilesBucketPipelineAggregationBuilder.NAME,
             PercentilesBucketPipelineAggregationBuilder::new,
             PercentilesBucketPipelineAggregator::new,
             PercentilesBucketPipelineAggregationBuilder.PARSER)
             .addResultReader(InternalPercentilesBucket::new));
+
         registerPipelineAggregation(new PipelineAggregationSpec(
                 MovAvgPipelineAggregationBuilder.NAME,
                 MovAvgPipelineAggregationBuilder::new,
                 MovAvgPipelineAggregator::new,
                 (n, c) -> MovAvgPipelineAggregationBuilder.parse(movingAverageModelParserRegistry, n, c))
             /* Uses InternalHistogram for buckets */);
+
         registerPipelineAggregation(new PipelineAggregationSpec(
             CumulativeSumPipelineAggregationBuilder.NAME,
             CumulativeSumPipelineAggregationBuilder::new,
             CumulativeSumPipelineAggregator::new,
             CumulativeSumPipelineAggregationBuilder::parse));
+
         registerPipelineAggregation(new PipelineAggregationSpec(
             BucketScriptPipelineAggregationBuilder.NAME,
             BucketScriptPipelineAggregationBuilder::new,
             BucketScriptPipelineAggregator::new,
             BucketScriptPipelineAggregationBuilder::parse));
+
         registerPipelineAggregation(new PipelineAggregationSpec(
             BucketSelectorPipelineAggregationBuilder.NAME,
             BucketSelectorPipelineAggregationBuilder::new,
             BucketSelectorPipelineAggregator::new,
             BucketSelectorPipelineAggregationBuilder::parse));
+
         registerPipelineAggregation(new PipelineAggregationSpec(
             BucketSortPipelineAggregationBuilder.NAME,
             BucketSortPipelineAggregationBuilder::new,
             BucketSortPipelineAggregator::new,
             BucketSortPipelineAggregationBuilder::parse));
+
         registerPipelineAggregation(new PipelineAggregationSpec(
             SerialDiffPipelineAggregationBuilder.NAME,
             SerialDiffPipelineAggregationBuilder::new,
             SerialDiffPipelineAggregator::new,
             SerialDiffPipelineAggregationBuilder::parse));
+
         registerPipelineAggregation(new PipelineAggregationSpec(
             MovFnPipelineAggregationBuilder.NAME,
             MovFnPipelineAggregationBuilder::new,
