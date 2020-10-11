@@ -611,12 +611,14 @@ public class SearchModule {
             CumulativeSumPipelineAggregator::new,
             CumulativeSumPipelineAggregationBuilder::parse));
 
+        // 使用脚本计算bucket
         registerPipelineAggregation(new PipelineAggregationSpec(
             BucketScriptPipelineAggregationBuilder.NAME,
             BucketScriptPipelineAggregationBuilder::new,
             BucketScriptPipelineAggregator::new,
             BucketScriptPipelineAggregationBuilder::parse));
 
+        // bucket 选择过滤
         registerPipelineAggregation(new PipelineAggregationSpec(
             BucketSelectorPipelineAggregationBuilder.NAME,
             BucketSelectorPipelineAggregationBuilder::new,
