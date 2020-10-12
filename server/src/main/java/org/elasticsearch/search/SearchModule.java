@@ -25,7 +25,9 @@ import org.elasticsearch.common.geo.GeoShapeType;
 import org.elasticsearch.common.geo.ShapesAvailability;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry.Entry;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.io.stream.Writeable.Reader;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -58,6 +60,7 @@ import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 import org.elasticsearch.index.query.NestedQueryBuilder;
 import org.elasticsearch.index.query.PrefixQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryParser;
 import org.elasticsearch.index.query.QueryStringQueryBuilder;
 import org.elasticsearch.index.query.RangeQueryBuilder;
 import org.elasticsearch.index.query.RegexpQueryBuilder;
@@ -271,6 +274,7 @@ import org.elasticsearch.search.suggest.phrase.StupidBackoff;
 import org.elasticsearch.search.suggest.term.TermSuggestion;
 import org.elasticsearch.search.suggest.term.TermSuggestionBuilder;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -300,6 +304,9 @@ public class SearchModule {
 
     private final Settings settings;
     private final List<NamedWriteableRegistry.Entry> namedWriteables = new ArrayList<>();
+    /**
+     * 命名的解析JSON的解析器
+     */
     private final List<NamedXContentRegistry.Entry> namedXContents = new ArrayList<>();
 
     /**
@@ -315,6 +322,8 @@ public class SearchModule {
     public SearchModule(Settings settings, boolean transportClient, List<SearchPlugin> plugins) {
         this.settings = settings;
         this.transportClient = transportClient;
+
+        // 注册N多的组件
         registerSuggesters(plugins);
         highlighters = setupHighlighters(settings, plugins);
         registerScoreFunctions(plugins);
@@ -407,7 +416,7 @@ public class SearchModule {
             MedianAbsoluteDeviationAggregationBuilder::new, MedianAbsoluteDeviationAggregationBuilder::parse)
             .addResultReader(InternalMedianAbsoluteDeviation::new));
 
-        // 去重统计求和,先去重, 再统计
+        // 去重统计,先去重, 再统计
         registerAggregation(new AggregationSpec(CardinalityAggregationBuilder.NAME, CardinalityAggregationBuilder::new,
             CardinalityAggregationBuilder::parse).addResultReader(InternalCardinality::new));
 
@@ -611,26 +620,28 @@ public class SearchModule {
             CumulativeSumPipelineAggregator::new,
             CumulativeSumPipelineAggregationBuilder::parse));
 
-        // 使用脚本计算bucket
+        // 使用脚本计算bucket, 在多桶聚合前提下
         registerPipelineAggregation(new PipelineAggregationSpec(
             BucketScriptPipelineAggregationBuilder.NAME,
             BucketScriptPipelineAggregationBuilder::new,
             BucketScriptPipelineAggregator::new,
             BucketScriptPipelineAggregationBuilder::parse));
 
-        // bucket 选择过滤
+        // bucket 选择过滤, 在多桶聚合前提下
         registerPipelineAggregation(new PipelineAggregationSpec(
             BucketSelectorPipelineAggregationBuilder.NAME,
             BucketSelectorPipelineAggregationBuilder::new,
             BucketSelectorPipelineAggregator::new,
             BucketSelectorPipelineAggregationBuilder::parse));
 
+        // 对bucket做排序, 可用from size 对排序后的bucket做截取
         registerPipelineAggregation(new PipelineAggregationSpec(
             BucketSortPipelineAggregationBuilder.NAME,
             BucketSortPipelineAggregationBuilder::new,
             BucketSortPipelineAggregator::new,
             BucketSortPipelineAggregationBuilder::parse));
 
+        // 统计当前bucket之间的差值
         registerPipelineAggregation(new PipelineAggregationSpec(
             SerialDiffPipelineAggregationBuilder.NAME,
             SerialDiffPipelineAggregationBuilder::new,
@@ -681,6 +692,9 @@ public class SearchModule {
         namedWriteables.add(new NamedWriteableRegistry.Entry(RescorerBuilder.class, spec.getName().getPreferredName(), spec.getReader()));
     }
 
+    /**
+     * 注册排序器
+     */
     private void registerSorts() {
         namedWriteables.add(new NamedWriteableRegistry.Entry(SortBuilder.class, GeoDistanceSortBuilder.NAME, GeoDistanceSortBuilder::new));
         namedWriteables.add(new NamedWriteableRegistry.Entry(SortBuilder.class, ScoreSortBuilder.NAME, ScoreSortBuilder::new));
@@ -772,6 +786,9 @@ public class SearchModule {
             (XContentParser p, Object c) -> scoreFunction.getParser().fromXContent(p)));
     }
 
+    /**
+     * 注册Value格式化器
+     */
     private void registerValueFormats() {
         registerValueFormat(DocValueFormat.BOOLEAN.getWriteableName(), in -> DocValueFormat.BOOLEAN);
         registerValueFormat(DocValueFormat.DateTime.NAME, DocValueFormat.DateTime::new);
@@ -860,7 +877,15 @@ public class SearchModule {
      * @param plugins
      */
     private void registerQueryParsers(List<SearchPlugin> plugins) {
+
+        // 示例代码
+        QuerySpec<MatchQueryBuilder> querySpec = new QuerySpec<>(
+            MatchQueryBuilder.NAME,
+            in -> new MatchQueryBuilder(in),                         // MatchQueryBuilder::new, 实例化QueryBuilder, 生成Lucene对应的Query
+            parser -> MatchQueryBuilder.fromXContent(parser));       // MatchQueryBuilder::fromXContent, static方法, 解析JSON里的数据, 生产QueryBuilder
+
         registerQuery(new QuerySpec<>(MatchQueryBuilder.NAME, MatchQueryBuilder::new, MatchQueryBuilder::fromXContent));
+
         registerQuery(new QuerySpec<>(MatchPhraseQueryBuilder.NAME, MatchPhraseQueryBuilder::new, MatchPhraseQueryBuilder::fromXContent));
         registerQuery(new QuerySpec<>(MatchPhrasePrefixQueryBuilder.NAME, MatchPhrasePrefixQueryBuilder::new,
             MatchPhrasePrefixQueryBuilder::fromXContent));
@@ -879,6 +904,8 @@ public class SearchModule {
         registerQuery(new QuerySpec<>(RegexpQueryBuilder.NAME, RegexpQueryBuilder::new, RegexpQueryBuilder::fromXContent));
         registerQuery(new QuerySpec<>(RangeQueryBuilder.NAME, RangeQueryBuilder::new, RangeQueryBuilder::fromXContent));
         registerQuery(new QuerySpec<>(PrefixQueryBuilder.NAME, PrefixQueryBuilder::new, PrefixQueryBuilder::fromXContent));
+
+        // wildcard 通配符查询, * ?
         registerQuery(new QuerySpec<>(WildcardQueryBuilder.NAME, WildcardQueryBuilder::new, WildcardQueryBuilder::fromXContent));
         registerQuery(
             new QuerySpec<>(ConstantScoreQueryBuilder.NAME, ConstantScoreQueryBuilder::new, ConstantScoreQueryBuilder::fromXContent));

@@ -108,10 +108,13 @@ public class FetchPhase implements SearchPhase {
             // disable stored fields entirely
             fieldsVisitor = null;
         } else {
+            // 遍历 stored_fields
             for (String fieldNameOrPattern : context.storedFieldsContext().fieldNames()) {
+                // 如果是 _source
                 if (fieldNameOrPattern.equals(SourceFieldMapper.NAME)) {
                     FetchSourceContext fetchSourceContext = context.hasFetchSourceContext() ? context.fetchSourceContext()
                         : FetchSourceContext.FETCH_SOURCE;
+                    // 取source
                     context.fetchSourceContext(new FetchSourceContext(true, fetchSourceContext.includes(), fetchSourceContext.excludes()));
                     continue;
                 }
@@ -125,7 +128,9 @@ public class FetchPhase implements SearchPhase {
                             throw new IllegalArgumentException("field [" + fieldName + "] isn't a leaf field");
                         }
                     } else {
+                        //
                         String storedField = fieldType.name();
+                        // 收集请求需要的 stored_field
                         Set<String> requestedFields = storedToRequestedFields.computeIfAbsent(
                             storedField, key -> new HashSet<>());
                         requestedFields.add(fieldName);
@@ -137,6 +142,7 @@ public class FetchPhase implements SearchPhase {
                 // empty list specified, default to disable _source if no explicit indication
                 fieldsVisitor = new FieldsVisitor(loadSource);
             } else {
+                // 构建fieldsVisitor
                 fieldsVisitor = new CustomFieldsVisitor(storedToRequestedFields.keySet(), loadSource);
             }
         }

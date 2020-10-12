@@ -766,7 +766,7 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
         context.from(source.from());
         context.size(source.size());
         Map<String, InnerHitContextBuilder> innerHitBuilders = new HashMap<>();
-        // 构建query
+        // 构建query, 通过SearchModule里注册的哪些组件来解析
         if (source.query() != null) {
             InnerHitContextBuilder.extractInnerHits(source.query(), innerHitBuilders);
             context.parsedQuery(queryShardContext.toQuery(source.query()));
@@ -785,6 +785,7 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
                 }
             }
         }
+        // 设置Sort
         if (source.sorts() != null) {
             try {
                 Optional<SortAndFormats> optionalSort = SortBuilder.buildSort(source.sorts(), context.getQueryShardContext());

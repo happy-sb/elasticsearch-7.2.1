@@ -1060,39 +1060,71 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
             } else if (token.isValue()) {
                 if (FROM_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
                     from = parser.intValue();
-                } else if (SIZE_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
+                }
+                // size
+                else if (SIZE_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
                     size = parser.intValue();
-                } else if (TIMEOUT_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
+                }
+                // time_out
+                else if (TIMEOUT_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
                     timeout = TimeValue.parseTimeValue(parser.text(), null, TIMEOUT_FIELD.getPreferredName());
-                } else if (TERMINATE_AFTER_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
+                }
+                // terminate_after, 取到多少条数据后结束流程
+                else if (TERMINATE_AFTER_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
                     terminateAfter = parser.intValue();
-                } else if (MIN_SCORE_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
+                }
+                // "min_score":2.0, 剔除所有评分在2.0以下的doc
+                else if (MIN_SCORE_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
                     minScore = parser.floatValue();
-                } else if (VERSION_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
+                }
+                // version, 数据版本, es索引了此字段, 查docValues获取数据的当前版本
+                else if (VERSION_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
                     version = parser.booleanValue();
-                } else if (SEQ_NO_PRIMARY_TERM_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
+                }
+
+                else if (SEQ_NO_PRIMARY_TERM_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
                     seqNoAndPrimaryTerm = parser.booleanValue();
-                } else if (EXPLAIN_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
+                }
+                // explain
+                else if (EXPLAIN_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
                     explain = parser.booleanValue();
-                } else if (TRACK_SCORES_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
+                }
+                // track_scores, 是否计算分值
+                else if (TRACK_SCORES_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
                     trackScores = parser.booleanValue();
-                } else if (TRACK_TOTAL_HITS_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
+                }
+                // track_total_hits, 是否统计总数, early_terminate 用到了此特性
+                // "track_total_hits":
+                // .false;      不统计总数
+                // .-1;         不统计总数
+                // .100;        最多遍历到100条
+                else if (TRACK_TOTAL_HITS_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
                     if (token == XContentParser.Token.VALUE_BOOLEAN ||
                         (token == XContentParser.Token.VALUE_STRING && Booleans.isBoolean(parser.text()))) {
                         trackTotalHitsUpTo = parser.booleanValue() ? TRACK_TOTAL_HITS_ACCURATE : TRACK_TOTAL_HITS_DISABLED;
                     } else {
                         trackTotalHitsUpTo = parser.intValue();
                     }
-                } else if (_SOURCE_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
+                }
+                // "_source":["name"]  只document里的name字段
+                else if (_SOURCE_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
                     fetchSourceContext = FetchSourceContext.fromXContent(parser);
-                } else if (STORED_FIELDS_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
+                }
+
+                else if (STORED_FIELDS_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
                     storedFieldsContext =
                         StoredFieldsContext.fromXContent(SearchSourceBuilder.STORED_FIELDS_FIELD.getPreferredName(), parser);
-                } else if (SORT_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
+                }
+
+                else if (SORT_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
                     sort(parser.text());
-                } else if (PROFILE_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
+                }
+
+                else if (PROFILE_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
                     profile = parser.booleanValue();
-                } else {
+                }
+
+                else {
                     throw new ParsingException(parser.getTokenLocation(), "Unknown key for a " + token + " in [" + currentFieldName + "].",
                             parser.getTokenLocation());
                 }
