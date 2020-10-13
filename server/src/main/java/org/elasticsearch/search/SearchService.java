@@ -386,6 +386,7 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
                 afterQueryTime = executor.success();
             }
             if (request.numberOfShards() == 1) {
+                // 执行Fetch阶段
                 return executeFetchPhase(context, afterQueryTime);
             }
             return context.queryResult();
@@ -403,6 +404,13 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
         }
     }
 
+    /**
+     * 执行query_then_fetch 的 fetch 阶段
+     *
+     * @param context
+     * @param afterQueryTime
+     * @return
+     */
     private QueryFetchSearchResult executeFetchPhase(SearchContext context, long afterQueryTime) {
         try (SearchOperationListenerExecutor executor = new SearchOperationListenerExecutor(context, true, afterQueryTime)) {
             shortcutDocIdsToLoad(context);

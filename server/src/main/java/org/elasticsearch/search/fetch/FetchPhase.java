@@ -68,12 +68,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-
 /**
- * Fetch phase of a search request, used to fetch the actual top matching documents to be returned to the client, identified
- * after reducing all of the matches returned by the query phase
+ * Fetch phase of a search request, used to fetch the actual top matching documents to be returned to the client, identified after reducing all of the matches
+ * returned by the query phase
  */
 public class FetchPhase implements SearchPhase {
+
     private static final Logger LOGGER = LogManager.getLogger(FetchPhase.class);
 
     private final FetchSubPhase[] fetchSubPhases;
@@ -96,25 +96,28 @@ public class FetchPhase implements SearchPhase {
 
         final FieldsVisitor fieldsVisitor;
         Map<String, Set<String>> storedToRequestedFields = new HashMap<>();
+        // request请求中的storeFields
         StoredFieldsContext storedFieldsContext = context.storedFieldsContext();
-
+        // 如果没有指定storeFields
         if (storedFieldsContext == null) {
             // no fields specified, default to return source if no explicit indication
             if (!context.hasScriptFields() && !context.hasFetchSourceContext()) {
+                // 没有指定script fields, 也没有显示要 fetch source, 则默认fetch _source
                 context.fetchSourceContext(new FetchSourceContext(true));
             }
+            // 是否加载 _source , 默认加载
             fieldsVisitor = new FieldsVisitor(context.sourceRequested());
         } else if (storedFieldsContext.fetchFields() == false) {
             // disable stored fields entirely
             fieldsVisitor = null;
         } else {
-            // 遍历 stored_fields
+            // 指定了store_fields, 遍历 stored_fields
             for (String fieldNameOrPattern : context.storedFieldsContext().fieldNames()) {
                 // 如果是 _source
                 if (fieldNameOrPattern.equals(SourceFieldMapper.NAME)) {
                     FetchSourceContext fetchSourceContext = context.hasFetchSourceContext() ? context.fetchSourceContext()
                         : FetchSourceContext.FETCH_SOURCE;
-                    // 取source
+                    // 设置取_source的上下文, 包含includes, excludes
                     context.fetchSourceContext(new FetchSourceContext(true, fetchSourceContext.includes(), fetchSourceContext.excludes()));
                     continue;
                 }
@@ -128,11 +131,12 @@ public class FetchPhase implements SearchPhase {
                             throw new IllegalArgumentException("field [" + fieldName + "] isn't a leaf field");
                         }
                     } else {
-                        //
+                        // store_field 的名称
                         String storedField = fieldType.name();
-                        // 收集请求需要的 stored_field
+                        // 存储的Field Name >> 检索的Field,  类似一种别名的映射
                         Set<String> requestedFields = storedToRequestedFields.computeIfAbsent(
                             storedField, key -> new HashSet<>());
+
                         requestedFields.add(fieldName);
                     }
                 }
@@ -150,16 +154,22 @@ public class FetchPhase implements SearchPhase {
         try {
             SearchHit[] hits = new SearchHit[context.docIdsToLoadSize()];
             FetchSubPhase.HitContext hitContext = new FetchSubPhase.HitContext();
+            // 遍历所有docID, 生成相应的searchHit
             for (int index = 0; index < context.docIdsToLoadSize(); index++) {
                 if (context.isCancelled()) {
                     throw new TaskCancelledException("cancelled");
                 }
+                // 当前的global docId
                 int docId = context.docIdsToLoad()[context.docIdsToLoadFrom() + index];
+                // segment的编号
                 int readerIndex = ReaderUtil.subIndex(docId, context.searcher().getIndexReader().leaves());
+                // 定位segment
                 LeafReaderContext subReaderContext = context.searcher().getIndexReader().leaves().get(readerIndex);
+                // document在自身segment里的docId
                 int subDocId = docId - subReaderContext.docBase;
 
                 final SearchHit searchHit;
+                // 如果当前检索的是nested的docID, 找到rootDocId
                 int rootDocId = findRootDocumentIfNested(context, subReaderContext, subDocId);
                 if (rootDocId != -1) {
                     searchHit = createNestedSearchHit(context, docId, subDocId, rootDocId,
@@ -205,18 +215,31 @@ public class FetchPhase implements SearchPhase {
         return -1;
     }
 
+    /**
+     * 创建检索命中
+     *
+     * @param context
+     * @param fieldsVisitor
+     * @param docId                   当前检索的全局docId
+     * @param subDocId                document在segment里的docId
+     * @param storedToRequestedFields stored里指定的Field, 若未指定, 默认为_source
+     * @param subReaderContext        segment的reader
+     * @return
+     */
     private SearchHit createSearchHit(SearchContext context,
                                       FieldsVisitor fieldsVisitor,
                                       int docId,
                                       int subDocId,
                                       Map<String, Set<String>> storedToRequestedFields,
                                       LeafReaderContext subReaderContext) {
+
         DocumentMapper documentMapper = context.mapperService().documentMapper();
-        Text typeText = documentMapper.typeText();
+        Text typeText = documentMapper.typeText();      // type
         if (fieldsVisitor == null) {
             return new SearchHit(docId, null, typeText, null);
         }
 
+        // 读取检索的Fields
         Map<String, DocumentField> searchFields = getSearchFields(context, fieldsVisitor, subDocId,
             storedToRequestedFields, subReaderContext);
 
@@ -230,11 +253,22 @@ public class FetchPhase implements SearchPhase {
         return searchHit;
     }
 
+    /**
+     * 获取要读取的Fields
+     *
+     * @param context
+     * @param fieldsVisitor
+     * @param subDocId                segment里的docId
+     * @param storedToRequestedFields 实际存储的Field >> alias names集合
+     * @param subReaderContext        segment的上下文
+     * @return
+     */
     private Map<String, DocumentField> getSearchFields(SearchContext context,
                                                        FieldsVisitor fieldsVisitor,
                                                        int subDocId,
                                                        Map<String, Set<String>> storedToRequestedFields,
                                                        LeafReaderContext subReaderContext) {
+        // 加载store_fields到FieldsVisitor里
         loadStoredFields(context, subReaderContext, fieldsVisitor, subDocId);
         fieldsVisitor.postProcess(context.mapperService());
 
@@ -243,7 +277,9 @@ public class FetchPhase implements SearchPhase {
         }
 
         Map<String, DocumentField> searchFields = new HashMap<>(fieldsVisitor.fields().size());
+        // 遍历读取的Fields
         for (Map.Entry<String, List<Object>> entry : fieldsVisitor.fields().entrySet()) {
+            // 读取的Field name和value
             String storedField = entry.getKey();
             List<Object> storedValues = entry.getValue();
 
@@ -278,7 +314,7 @@ public class FetchPhase implements SearchPhase {
             source = rootFieldsVisitor.source();
         } else {
             // In case of nested inner hits we already know the uid, so no need to fetch it from stored fields again!
-            uid = ((InnerHitsContext.InnerHitSubContext) context).getUid();
+            uid = ((InnerHitsContext.InnerHitSubContext)context).getUid();
             source = null;
         }
 
@@ -296,7 +332,7 @@ public class FetchPhase implements SearchPhase {
         ObjectMapper nestedObjectMapper = documentMapper.findNestedObjectMapper(nestedSubDocId, context, subReaderContext);
         assert nestedObjectMapper != null;
         SearchHit.NestedIdentity nestedIdentity =
-                getInternalNestedIdentity(context, nestedSubDocId, subReaderContext, context.mapperService(), nestedObjectMapper);
+            getInternalNestedIdentity(context, nestedSubDocId, subReaderContext, context.mapperService(), nestedObjectMapper);
 
         if (source != null) {
             Tuple<XContentType, Map<String, Object>> tuple = XContentHelper.convertToMap(source, true);
@@ -315,7 +351,7 @@ public class FetchPhase implements SearchPhase {
                 List<?> nestedParsedSource;
                 if (extractedValue instanceof List) {
                     // nested field has an array value in the _source
-                    nestedParsedSource = (List<?>) extractedValue;
+                    nestedParsedSource = (List<?>)extractedValue;
                 } else if (extractedValue instanceof Map) {
                     // nested field has an object value in the _source. This just means the nested field has just one inner object,
                     // which is valid, but uncommon.
@@ -333,7 +369,7 @@ public class FetchPhase implements SearchPhase {
                     throw new IllegalArgumentException("Cannot execute inner hits. One or more parent object fields of nested field [" +
                         nestedObjectMapper.name() + "] are not nested. All parent fields need to be nested fields too");
                 }
-                sourceAsMap = (Map<String, Object>) nestedParsedSource.get(nested.getOffset());
+                sourceAsMap = (Map<String, Object>)nestedParsedSource.get(nested.getOffset());
                 if (nested.getChild() == null) {
                     current.put(nestedPath, sourceAsMap);
                 } else {
@@ -399,7 +435,7 @@ public class FetchPhase implements SearchPhase {
                  */
                 int previousParent = parentBits.prevSetBit(currentParent);
                 for (int docId = childIter.advance(previousParent + 1); docId < nestedSubDocId && docId != DocIdSetIterator.NO_MORE_DOCS;
-                        docId = childIter.nextDoc()) {
+                     docId = childIter.nextDoc()) {
                     offset++;
                 }
                 currentParent = nestedSubDocId;
@@ -410,7 +446,7 @@ public class FetchPhase implements SearchPhase {
                  */
                 int nextParent = parentBits.nextSetBit(currentParent);
                 for (int docId = childIter.advance(currentParent + 1); docId < nextParent && docId != DocIdSetIterator.NO_MORE_DOCS;
-                        docId = childIter.nextDoc()) {
+                     docId = childIter.nextDoc()) {
                     offset++;
                 }
                 currentParent = nextParent;
