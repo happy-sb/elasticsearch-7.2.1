@@ -189,6 +189,7 @@ public class FetchPhase implements SearchPhase {
                 throw new TaskCancelledException("cancelled");
             }
 
+            // 处理Fetch阶段的子阶段，比如取_version, 取docvalue_fields, fetch_source等等
             for (FetchSubPhase fetchSubPhase : fetchSubPhases) {
                 fetchSubPhase.hitsExecute(context, hits);
                 if (context.isCancelled()) {

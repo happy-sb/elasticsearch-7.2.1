@@ -33,6 +33,12 @@ import java.util.Map;
 
 public final class FetchSourceSubPhase implements FetchSubPhase {
 
+    /**
+     * 根据 _source 里的includes, excludes 对 _source 的数据做过滤
+     *
+     * @param context
+     * @param hitContext
+     */
     @Override
     public void hitExecute(SearchContext context, HitContext hitContext) {
         if (context.sourceRequested() == false) {
@@ -49,13 +55,13 @@ public final class FetchSourceSubPhase implements FetchSubPhase {
             }
             if (source.internalSourceRef() == null) {
                 throw new IllegalArgumentException("unable to fetch fields from _source field: _source is disabled in the mappings " +
-                        "for index [" + context.indexShard().shardId().getIndexName() + "]");
+                    "for index [" + context.indexShard().shardId().getIndexName() + "]");
             }
         }
-
+        // 根据 _source 里的includes, excludes 对 _source 的数据做过滤
         Object value = source.filter(fetchSourceContext);
         if (nestedHit) {
-            value = getNestedSource((Map<String, Object>) value, hitContext);
+            value = getNestedSource((Map<String, Object>)value, hitContext);
         }
 
         try {
@@ -81,7 +87,7 @@ public final class FetchSourceSubPhase implements FetchSubPhase {
 
     private Map<String, Object> getNestedSource(Map<String, Object> sourceAsMap, HitContext hitContext) {
         for (SearchHit.NestedIdentity o = hitContext.hit().getNestedIdentity(); o != null; o = o.getChild()) {
-            sourceAsMap = (Map<String, Object>) sourceAsMap.get(o.getField().string());
+            sourceAsMap = (Map<String, Object>)sourceAsMap.get(o.getField().string());
             if (sourceAsMap == null) {
                 return null;
             }

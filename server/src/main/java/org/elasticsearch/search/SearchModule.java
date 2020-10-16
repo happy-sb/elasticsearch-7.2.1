@@ -839,15 +839,28 @@ public class SearchModule {
             new NamedWriteableRegistry.Entry(MovAvgModel.class, movAvgModel.getName().getPreferredName(), movAvgModel.getReader()));
     }
 
+    /**
+     * 注册Fetch阶段的子阶段
+     *
+     * @param plugins
+     */
     private void registerFetchSubPhases(List<SearchPlugin> plugins) {
+        // 处理explain
         registerFetchSubPhase(new ExplainFetchSubPhase());
+        // 取 docvalue_fields
         registerFetchSubPhase(new DocValueFieldsFetchSubPhase());
         registerFetchSubPhase(new ScriptFieldsFetchSubPhase());
+        // 根据_source里的includes, excludes 配置过滤_source的字段值
         registerFetchSubPhase(new FetchSourceSubPhase());
+        // 读取_version
         registerFetchSubPhase(new VersionFetchSubPhase());
+        // 读取 _seq_no 和 _primary_term
         registerFetchSubPhase(new SeqNoPrimaryTermFetchSubPhase());
+
         registerFetchSubPhase(new MatchedQueriesFetchSubPhase());
+
         registerFetchSubPhase(new HighlightPhase(highlighters));
+
         registerFetchSubPhase(new ScoreFetchSubPhase());
 
         FetchPhaseConstructionContext context = new FetchPhaseConstructionContext(highlighters);

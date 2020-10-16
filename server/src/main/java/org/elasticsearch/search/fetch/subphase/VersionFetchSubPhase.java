@@ -31,7 +31,11 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Comparator;
 
+/**
+ * 从docValues里读取_version, 填充到searchHit里
+ */
 public final class VersionFetchSubPhase implements FetchSubPhase {
+
     @Override
     public void hitsExecute(SearchContext context, SearchHit[] hits) throws IOException {
         if (context.version() == false ||

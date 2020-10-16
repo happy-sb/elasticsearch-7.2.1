@@ -31,6 +31,15 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Comparator;
 
+/**
+ * _seq_no：严格递增的顺序号，每个文档一个，Shard级别严格递增，保证后写入的Doc的_seq_no大于先写入的Doc的_seq_no。
+ *
+ * 任何类型的写操作，包括index、create、update和Delete，都会生成一个_seq_no。这个是不可改的，而_version这个版本号是可以改的，后面会讲
+ *
+ * _primary_term：_primary_term也和_seq_no一样是一个整数，每当Primary Shard发生重新分配时，比如重启，Primary选举等，_primary_term会递增1。
+ *
+ * _primary_term主要是用来恢复数据时处理当多个文档的_seq_no一样时的冲突，比如当一个shard宕机了，raplica需要用到最新的数据，就会根据_primary_term和_seq_no这两个值来拿到最新的document
+ */
 public final class SeqNoPrimaryTermFetchSubPhase implements FetchSubPhase {
     @Override
     public void hitsExecute(SearchContext context, SearchHit[] hits) throws IOException {
