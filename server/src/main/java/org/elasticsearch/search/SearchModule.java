@@ -856,11 +856,11 @@ public class SearchModule {
         registerFetchSubPhase(new VersionFetchSubPhase());
         // 读取 _seq_no 和 _primary_term
         registerFetchSubPhase(new SeqNoPrimaryTermFetchSubPhase());
-
+        // 匹配了那几个查询条件, 比如 should
         registerFetchSubPhase(new MatchedQueriesFetchSubPhase());
-
+        // 高亮
         registerFetchSubPhase(new HighlightPhase(highlighters));
-
+        //  设置评分
         registerFetchSubPhase(new ScoreFetchSubPhase());
 
         FetchPhaseConstructionContext context = new FetchPhaseConstructionContext(highlighters);

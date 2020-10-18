@@ -209,9 +209,10 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
             if (remoteClusterIndices.isEmpty()) {
                 executeLocalSearch(task, timeProvider, searchRequest, localIndices, clusterState, listener);
             }
-            // 集群检索
+            // cross-cluster search 远程集群检索
             else {
                 if (shouldMinimizeRoundtrips(searchRequest)) {
+                    // 搜索远程集群
                     ccsRemoteReduce(searchRequest, localIndices, remoteClusterIndices, timeProvider, searchService::createReduceContext,
                         remoteClusterService, threadPool, listener,
                         (r, l) -> executeLocalSearch(task, timeProvider, r, localIndices, clusterState, l));
@@ -259,11 +260,25 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
             source.collapse().getInnerHits().isEmpty();
     }
 
+    /**
+     * 搜索远程集群
+     *
+     * @param searchRequest
+     * @param localIndices         本地索引
+     * @param remoteIndices        远程索引
+     * @param timeProvider
+     * @param reduceContext
+     * @param remoteClusterService
+     * @param threadPool
+     * @param listener
+     * @param localSearchConsumer
+     */
     static void ccsRemoteReduce(SearchRequest searchRequest, OriginalIndices localIndices, Map<String, OriginalIndices> remoteIndices,
                                 SearchTimeProvider timeProvider, Function<Boolean, InternalAggregation.ReduceContext> reduceContext,
                                 RemoteClusterService remoteClusterService, ThreadPool threadPool, ActionListener<SearchResponse> listener,
                                 BiConsumer<SearchRequest, ActionListener<SearchResponse>> localSearchConsumer) {
 
+        // 搜索远程集群,不是本地集群
         if (localIndices == null && remoteIndices.size() == 1) {
             //if we are searching against a single remote cluster, we simply forward the original search request to such cluster
             //and we directly perform final reduction in the remote cluster
@@ -298,6 +313,7 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
                 }
             });
         } else {
+            // merge response, cross-cluster search 跨集群检索
             SearchResponseMerger searchResponseMerger = createSearchResponseMerger(searchRequest.source(), timeProvider, reduceContext);
             AtomicInteger skippedClusters = new AtomicInteger(0);
             final AtomicReference<Exception> exceptions = new AtomicReference<>();
@@ -480,8 +496,11 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
             concreteIndices[i] = indices[i].getName();
         }
         Map<String, Long> nodeSearchCounts = searchTransportService.getPendingSearchRequests();
+
         GroupShardsIterator<ShardIterator> localShardsIterator = clusterService.operationRouting().searchShards(clusterState,
             concreteIndices, routingMap, searchRequest.preference(), searchService.getResponseCollectorService(), nodeSearchCounts);
+
+        // shardIterators.size(): 分片数
         GroupShardsIterator<SearchShardIterator> shardIterators = mergeShardsIterators(localShardsIterator, localIndices,
             searchRequest.getLocalClusterAlias(), remoteShardIterators);
 
@@ -491,6 +510,7 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
 
         // optimize search type for cases where there is only one shard group to search on
         if (shardIterators.size() == 1) {
+            // 如果只有一个分片, 那么query_then_fetch 和 DFS没什么区别
             // if we only have one group, then we always want Q_T_F, no need for DFS, and no need to do THEN since we hit one shard
             searchRequest.searchType(QUERY_THEN_FETCH);
         }

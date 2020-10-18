@@ -354,12 +354,13 @@ public class SearchTransportService {
             });
         TransportActionProxy.registerProxyAction(transportService, DFS_ACTION_NAME, DfsSearchResult::new);
 
-        // 注册query_then_fetch 请求的handler
+        // 注册query_then_fetch 请求的query handler
         transportService.registerRequestHandler(QUERY_ACTION_NAME, ThreadPool.Names.SAME, ShardSearchTransportRequest::new,
             (request, channel, task) -> {
                 searchService.executeQueryPhase(request, (SearchTask)task, new ChannelActionListener<>(
                     channel, QUERY_ACTION_NAME, request));
             });
+
         TransportActionProxy.registerProxyActionWithDynamicResponseType(transportService, QUERY_ACTION_NAME,
             (request) -> ((ShardSearchRequest)request).numberOfShards() == 1 ? QueryFetchSearchResult::new : QuerySearchResult::new);
 
@@ -368,6 +369,7 @@ public class SearchTransportService {
                 searchService.executeQueryPhase(request, (SearchTask)task, new ChannelActionListener<>(channel, QUERY_ID_ACTION_NAME,
                     request));
             });
+
         TransportActionProxy.registerProxyAction(transportService, QUERY_ID_ACTION_NAME, QuerySearchResult::new);
 
         transportService.registerRequestHandler(QUERY_SCROLL_ACTION_NAME, ThreadPool.Names.SAME, InternalScrollSearchRequest::new,
@@ -391,6 +393,7 @@ public class SearchTransportService {
             });
         TransportActionProxy.registerProxyAction(transportService, FETCH_ID_SCROLL_ACTION_NAME, FetchSearchResult::new);
 
+        // 注册query_then_fetch 请求的fetch handler
         transportService.registerRequestHandler(FETCH_ID_ACTION_NAME, ThreadPool.Names.SAME, true, true, ShardFetchSearchRequest::new,
             (request, channel, task) -> {
                 searchService.executeFetchPhase(request, (SearchTask)task, new ChannelActionListener<>(channel, FETCH_ID_ACTION_NAME,

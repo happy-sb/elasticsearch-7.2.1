@@ -66,6 +66,7 @@ public class ScoreFetchSubPhase implements FetchSubPhase {
 
             final int leafDocID = hit.docId() - leafContext.docBase;
             assert leafDocID >= 0 && leafDocID < leafContext.reader().maxDoc();
+            // 定位leafDocId
             int advanced = scorer.iterator().advance(leafDocID);
             if (advanced != leafDocID) {
                 throw new IllegalStateException("Can't compute score on document " + hit + " as it doesn't match the query");

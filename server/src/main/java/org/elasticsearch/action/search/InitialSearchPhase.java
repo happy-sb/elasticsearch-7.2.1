@@ -48,6 +48,7 @@ import java.util.stream.Stream;
  * distributed frequencies
  */
 abstract class InitialSearchPhase<FirstResult extends SearchPhaseResult> extends SearchPhase {
+
     private final SearchRequest request;
     private final GroupShardsIterator<SearchShardIterator> toSkipShardsIts;
     private final GroupShardsIterator<SearchShardIterator> shardsIts;
@@ -144,21 +145,22 @@ abstract class InitialSearchPhase<FirstResult extends SearchPhaseResult> extends
                 for (int index = 0; index < shardsIts.size(); index++) {
                     final SearchShardIterator shardRoutings = shardsIts.get(index);
                     if (shardRoutings.size() == 0) {
-                        if(missingShards.length() >0 ){
+                        if (missingShards.length() > 0) {
                             missingShards.append(", ");
                         }
                         missingShards.append(shardRoutings.shardId());
                     }
                 }
                 // 有shard不可用，不允许部分结果形式
-                if (missingShards.length() >0) {
+                if (missingShards.length() > 0) {
                     //Status red - shard is missing all copies and would produce partial results for an index search
-                    final String msg = "Search rejected due to missing shards ["+ missingShards +
-                            "]. Consider using `allow_partial_search_results` setting to bypass this error.";
+                    final String msg = "Search rejected due to missing shards [" + missingShards +
+                        "]. Consider using `allow_partial_search_results` setting to bypass this error.";
                     throw new SearchPhaseExecutionException(getName(), msg, null, ShardSearchFailure.EMPTY_ARRAY);
                 }
             }
             for (int index = 0; index < shardsIts.size(); index++) {
+                // 通过序号获取指定分片
                 final SearchShardIterator shardRoutings = shardsIts.get(index);
                 assert shardRoutings.skip() == false;
                 performPhaseOnShard(index, shardRoutings, shardRoutings.nextOrNull());
@@ -187,6 +189,7 @@ abstract class InitialSearchPhase<FirstResult extends SearchPhaseResult> extends
     }
 
     private static final class PendingExecutions {
+
         private final int permits;
         private int permitsTaken = 0;
         private ArrayDeque<Runnable> queue = new ArrayDeque<>();
@@ -245,6 +248,13 @@ abstract class InitialSearchPhase<FirstResult extends SearchPhaseResult> extends
         }
     }
 
+    /**
+     * 在分片上执行phase
+     *
+     * @param shardIndex 分片序号
+     * @param shardIt    分片信息
+     * @param shard      分片路由
+     */
     private void performPhaseOnShard(final int shardIndex, final SearchShardIterator shardIt, final ShardRouting shard) {
         /*
          * We capture the thread that this phase is starting on. When we are called back after executing the phase, we are either on the
@@ -333,6 +343,7 @@ abstract class InitialSearchPhase<FirstResult extends SearchPhaseResult> extends
 
     /**
      * Executed once all shard results have been received and processed
+     *
      * @see #onShardFailure(int, SearchShardTarget, Exception)
      * @see #onShardSuccess(SearchPhaseResult)
      */
@@ -341,24 +352,26 @@ abstract class InitialSearchPhase<FirstResult extends SearchPhaseResult> extends
     /**
      * Executed once for every failed shard level request. This method is invoked before the next replica is tried for the given
      * shard target.
-     * @param shardIndex the internal index for this shard. Each shard has an index / ordinal assigned that is used to reference
-     *                   it's results
+     *
+     * @param shardIndex  the internal index for this shard. Each shard has an index / ordinal assigned that is used to reference
+     *                    it's results
      * @param shardTarget the shard target for this failure
-     * @param ex the failure reason
+     * @param ex          the failure reason
      */
     abstract void onShardFailure(int shardIndex, SearchShardTarget shardTarget, Exception ex);
 
     /**
      * Executed once for every successful shard level request.
-     * @param result the result returned form the shard
      *
+     * @param result the result returned form the shard
      */
     abstract void onShardSuccess(FirstResult result);
 
     /**
      * Sends the request to the actual shard.
-     * @param shardIt the shards iterator
-     * @param shard the shard routing to send the request for
+     *
+     * @param shardIt  the shards iterator
+     * @param shard    the shard routing to send the request for
      * @param listener the listener to notify on response
      */
     protected abstract void executePhaseOnShard(SearchShardIterator shardIt, ShardRouting shard,
@@ -368,11 +381,13 @@ abstract class InitialSearchPhase<FirstResult extends SearchPhaseResult> extends
      * This class acts as a basic result collection that can be extended to do on-the-fly reduction or result processing
      */
     abstract static class SearchPhaseResults<Result extends SearchPhaseResult> {
+
         private final int numShards;
 
         SearchPhaseResults(int numShards) {
             this.numShards = numShards;
         }
+
         /**
          * Returns the number of expected results this class should collect
          */
@@ -387,6 +402,7 @@ abstract class InitialSearchPhase<FirstResult extends SearchPhaseResult> extends
 
         /**
          * Consumes a single shard result
+         *
          * @param result the shards result
          */
         abstract void consumeResult(Result result);
@@ -414,6 +430,7 @@ abstract class InitialSearchPhase<FirstResult extends SearchPhaseResult> extends
      * This class acts as a basic result collection that can be extended to do on-the-fly reduction or result processing
      */
     static class ArraySearchPhaseResults<Result extends SearchPhaseResult> extends SearchPhaseResults<Result> {
+
         final AtomicArray<Result> results;
 
         ArraySearchPhaseResults(int size) {

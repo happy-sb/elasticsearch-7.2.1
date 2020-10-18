@@ -110,6 +110,7 @@ abstract class AbstractSearchAsyncAction<Result extends SearchPhaseResult> exten
      * This is the main entry point for a search. This method starts the search execution of the initial phase.
      */
     public final void start() {
+        // 如果没有可用分片
         if (getNumShards() == 0) {
             //no search shards to search on, bail with empty response
             //(it happens with search across _all with no indices around and consistent with broadcast operations)
