@@ -136,15 +136,14 @@ public final class SearchPhaseController {
     }
 
     /**
-     * Returns a score doc array of top N search docs across all shards, followed by top suggest docs for each
-     * named completion suggestion across all shards. If more than one named completion suggestion is specified in the
-     * request, the suggest docs for a named suggestion are ordered by the suggestion name.
+     * Returns a score doc array of top N search docs across all shards, followed by top suggest docs for each named completion suggestion across all shards. If
+     * more than one named completion suggestion is specified in the request, the suggest docs for a named suggestion are ordered by the suggestion name.
+     * <p>
+     * Note: The order of the sorted score docs depends on the shard index in the result array if the merge process needs to disambiguate the result. In oder to
+     * obtain stable results the shard index (index of the result in the result array) must be the same.
      *
-     * Note: The order of the sorted score docs depends on the shard index in the result array if the merge process needs to disambiguate
-     * the result. In oder to obtain stable results the shard index (index of the result in the result array) must be the same.
-     *
-     * @param ignoreFrom      Whether to ignore the from and sort all hits in each shard result.
-     *                        Enabled only for scroll search, because that only retrieves hits of length 'size' in the query phase.
+     * @param ignoreFrom      Whether to ignore the from and sort all hits in each shard result. Enabled only for scroll search, because that only retrieves
+     *                        hits of length 'size' in the query phase.
      * @param results         the search phase results to obtain the sort docs from
      * @param bufferedTopDocs the pre-consumed buffered top docs
      * @param topDocsStats    the top docs stats to fill
@@ -218,6 +217,14 @@ public final class SearchPhaseController {
         }
     }
 
+    /**
+     * merge topN 结果
+     *
+     * @param results
+     * @param topN
+     * @param from
+     * @return
+     */
     static TopDocs mergeTopDocs(Collection<TopDocs> results, int topN, int from) {
         if (results.isEmpty()) {
             return null;
@@ -284,11 +291,11 @@ public final class SearchPhaseController {
     }
 
     /**
-     * Enriches search hits and completion suggestion hits from <code>sortedDocs</code> using <code>fetchResultsArr</code>,
-     * merges suggestions, aggregations and profile results
-     *
-     * Expects sortedDocs to have top search docs across all shards, optionally followed by top suggest docs for each named
-     * completion suggestion ordered by suggestion name
+     * Enriches search hits and completion suggestion hits from <code>sortedDocs</code> using <code>fetchResultsArr</code>, merges suggestions, aggregations and
+     * profile results
+     * <p>
+     * Expects sortedDocs to have top search docs across all shards, optionally followed by top suggest docs for each named completion suggestion ordered by
+     * suggestion name
      */
     public InternalSearchResponse merge(boolean ignoreFrom, ReducedQueryPhase reducedQueryPhase,
                                         Collection<? extends SearchPhaseResult> fetchResults,
@@ -411,10 +418,10 @@ public final class SearchPhaseController {
      * Reduces the given query results and consumes all aggregations and profile results.
      *
      * @param queryResults    a list of non-null query shard results
-     * @param bufferedAggs    a list of pre-collected / buffered aggregations. if this list is non-null all aggregations have been consumed
-     *                        from all non-null query results.
-     * @param bufferedTopDocs a list of pre-collected / buffered top docs. if this list is non-null all top docs have been consumed
-     *                        from all non-null query results.
+     * @param bufferedAggs    a list of pre-collected / buffered aggregations. if this list is non-null all aggregations have been consumed from all non-null
+     *                        query results.
+     * @param bufferedTopDocs a list of pre-collected / buffered top docs. if this list is non-null all top docs have been consumed from all non-null query
+     *                        results.
      * @param numReducePhases the number of non-final reduce phases applied to the query results.
      * @see QuerySearchResult#consumeAggs()
      * @see QuerySearchResult#consumeProfileResult()
@@ -564,10 +571,8 @@ public final class SearchPhaseController {
     }
 
     /**
-     * A {@link InitialSearchPhase.ArraySearchPhaseResults} implementation
-     * that incrementally reduces aggregation results as shard results are consumed.
-     * This implementation can be configured to batch up a certain amount of results and only reduce them
-     * iff the buffer is exhausted.
+     * A {@link InitialSearchPhase.ArraySearchPhaseResults} implementation that incrementally reduces aggregation results as shard results are consumed. This
+     * implementation can be configured to batch up a certain amount of results and only reduce them iff the buffer is exhausted.
      */
     static final class QueryPhaseResultConsumer extends InitialSearchPhase.ArraySearchPhaseResults<SearchPhaseResult> {
 
@@ -575,7 +580,13 @@ public final class SearchPhaseController {
         private final TopDocs[] topDocsBuffer;
         private final boolean hasAggs;
         private final boolean hasTopDocs;
+        /**
+         * 要缓存几个shard的结果
+         */
         private final int bufferSize;
+        /**
+         * 当前接收到了几个shard的结果
+         */
         private int index;
         private final SearchPhaseController controller;
         private int numReducePhases = 0;
@@ -587,8 +598,8 @@ public final class SearchPhaseController {
          *
          * @param controller         a controller instance to reduce the query response objects
          * @param expectedResultSize the expected number of query results. Corresponds to the number of shards queried
-         * @param bufferSize         the size of the reduce buffer. if the buffer size is smaller than the number of expected results
-         *                           the buffer is used to incrementally reduce aggregation results before all shards responded.
+         * @param bufferSize         the size of the reduce buffer. if the buffer size is smaller than the number of expected results the buffer is used to
+         *                           incrementally reduce aggregation results before all shards responded.
          */
         private QueryPhaseResultConsumer(SearchPhaseController controller, int expectedResultSize, int bufferSize,
                                          boolean hasTopDocs, boolean hasAggs, int trackTotalHitsUpTo, boolean performFinalReduce) {
@@ -626,16 +637,19 @@ public final class SearchPhaseController {
          * @param querySearchResult
          */
         private synchronized void consumeInternal(QuerySearchResult querySearchResult) {
+            // 收集到所有shard的响应
             if (index == bufferSize) {
+                // 有聚合
                 if (hasAggs) {
                     ReduceContext reduceContext = controller.reduceContextFunction.apply(false);
                     InternalAggregations reducedAggs = InternalAggregations.reduce(Arrays.asList(aggsBuffer), reduceContext);
                     Arrays.fill(aggsBuffer, null);
                     aggsBuffer[0] = reducedAggs;
                 }
+                // _source 里有 size
                 if (hasTopDocs) {
                     TopDocs reducedTopDocs = mergeTopDocs(Arrays.asList(topDocsBuffer),
-                        // we have to merge here in the same way we collect on a shard
+                        // we have to merge here in the same way we collect on a shard,  取前from+size条数据
                         querySearchResult.from() + querySearchResult.size(), 0);
                     Arrays.fill(topDocsBuffer, null);
                     topDocsBuffer[0] = reducedTopDocs;
@@ -649,8 +663,11 @@ public final class SearchPhaseController {
             }
             if (hasTopDocs) {
                 final TopDocsAndMaxScore topDocs = querySearchResult.consumeTopDocs(); // can't be null
+                // 添加统计结果
                 topDocsStats.add(topDocs, querySearchResult.searchTimedOut(), querySearchResult.terminatedEarly());
+
                 setShardIndex(topDocs.topDocs, querySearchResult.getShardIndex());
+                // 缓存query结果
                 topDocsBuffer[i] = topDocs.topDocs;
             }
         }

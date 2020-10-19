@@ -241,6 +241,7 @@ abstract class AbstractSearchAsyncAction<Result extends SearchPhaseResult> exten
 
     @Override
     public final void onShardSuccess(Result result) {
+        // 计算响应的分片数
         successfulOps.incrementAndGet();
         results.consumeResult(result);
         if (logger.isTraceEnabled()) {
@@ -257,6 +258,7 @@ abstract class AbstractSearchAsyncAction<Result extends SearchPhaseResult> exten
 
     @Override
     public final void onPhaseDone() {
+        // 当前阶段执行完, 比如由 queryPhase 到 FetchSearchPhase
         executeNextPhase(this, getNextPhase(results, this));
     }
 

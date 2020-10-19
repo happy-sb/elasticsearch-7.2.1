@@ -159,6 +159,7 @@ abstract class InitialSearchPhase<FirstResult extends SearchPhaseResult> extends
                     throw new SearchPhaseExecutionException(getName(), msg, null, ShardSearchFailure.EMPTY_ARRAY);
                 }
             }
+            // 向所有分片发送检索请求
             for (int index = 0; index < shardsIts.size(); index++) {
                 // 通过序号获取指定分片
                 final SearchShardIterator shardRoutings = shardsIts.get(index);
@@ -333,6 +334,7 @@ abstract class InitialSearchPhase<FirstResult extends SearchPhaseResult> extends
             remainingOpsOnIterator = shardsIt.remaining() + 1;
         }
         final int xTotalOps = totalOps.addAndGet(remainingOpsOnIterator);
+        // 如果收到了所有shard的响应
         if (xTotalOps == expectedTotalOps) {
             onPhaseDone();
         } else if (xTotalOps > expectedTotalOps) {
