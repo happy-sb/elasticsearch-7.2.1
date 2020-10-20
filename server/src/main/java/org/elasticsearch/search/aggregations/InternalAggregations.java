@@ -95,8 +95,11 @@ public final class InternalAggregations extends Aggregations implements Streamab
         List<SiblingPipelineAggregator> topLevelPipelineAggregators = aggregationsList.get(0).getTopLevelPipelineAggregators();
 
         // first we collect all aggregations of the same type and list them together
+        // 按聚合名称对所有shard里的子聚合做收集
         Map<String, List<InternalAggregation>> aggByName = new HashMap<>();
+        // 每个shard的聚合
         for (InternalAggregations aggregations : aggregationsList) {
+            // 每个聚合里面的子聚合
             for (Aggregation aggregation : aggregations.aggregations) {
                 List<InternalAggregation> aggs = aggByName.computeIfAbsent(
                         aggregation.getName(), k -> new ArrayList<>(aggregationsList.size()));
@@ -106,6 +109,7 @@ public final class InternalAggregations extends Aggregations implements Streamab
 
         // now we can use the first aggregation of each list to handle the reduce of its list
         List<InternalAggregation> reducedAggregations = new ArrayList<>();
+        // 按照 agg name reduce list
         for (Map.Entry<String, List<InternalAggregation>> entry : aggByName.entrySet()) {
             List<InternalAggregation> aggregations = entry.getValue();
             // Sort aggregations so that unmapped aggs come last in the list
