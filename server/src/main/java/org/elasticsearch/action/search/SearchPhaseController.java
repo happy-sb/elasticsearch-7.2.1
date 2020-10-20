@@ -648,6 +648,7 @@ public final class SearchPhaseController {
                 }
                 // _source 里有 size
                 if (hasTopDocs) {
+                    // merge reduce 结果
                     TopDocs reducedTopDocs = mergeTopDocs(Arrays.asList(topDocsBuffer),
                         // we have to merge here in the same way we collect on a shard,  取前from+size条数据
                         querySearchResult.from() + querySearchResult.size(), 0);
