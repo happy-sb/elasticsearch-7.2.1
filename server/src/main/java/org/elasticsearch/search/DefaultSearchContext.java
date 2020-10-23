@@ -217,6 +217,7 @@ final class DefaultSearchContext extends SearchContext {
                             + "]. Scroll batch sizes cost as much memory as result windows so they are controlled by the ["
                             + IndexSettings.MAX_RESULT_WINDOW_SETTING.getKey() + "] index level setting.");
         }
+        // 是否需要重新计算分, 比如 function_score
         if (rescore != null) {
             if (sort != null) {
                 throw new IllegalArgumentException("Cannot use [sort] option in conjunction with [rescore].");
@@ -253,6 +254,7 @@ final class DefaultSearchContext extends SearchContext {
         if (query() == null) {
             parsedQuery(ParsedQuery.parsedMatchAllQuery());
         }
+        // 如果boost ！= 1, 则用functionScoreQuery包装原始query
         if (queryBoost() != AbstractQueryBuilder.DEFAULT_BOOST) {
             parsedQuery(new ParsedQuery(new FunctionScoreQuery(query(), new WeightFactorFunction(queryBoost)), parsedQuery()));
         }
