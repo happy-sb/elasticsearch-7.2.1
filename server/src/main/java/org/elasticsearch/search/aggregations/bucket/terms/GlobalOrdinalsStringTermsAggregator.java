@@ -47,8 +47,10 @@ import org.elasticsearch.search.internal.SearchContext;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.LongUnaryOperator;
 
 import static org.apache.lucene.index.SortedSetDocValues.NO_MORE_ORDS;
@@ -74,6 +76,7 @@ public class GlobalOrdinalsStringTermsAggregator extends AbstractStringTermsAggr
     protected final LongHash bucketOrds;
 
     public interface GlobalOrdLookupFunction {
+
         BytesRef apply(long ord) throws IOException;
     }
 
@@ -107,6 +110,14 @@ public class GlobalOrdinalsStringTermsAggregator extends AbstractStringTermsAggr
         return bucketOrds != null;
     }
 
+    /**
+     * 收集doc的term的全局顺序
+     *
+     * @param doc       当前docId
+     * @param globalOrd term的全局顺序
+     * @param sub
+     * @throws IOException
+     */
     private void collectGlobalOrd(int doc, long globalOrd, LeafBucketCollector sub) throws IOException {
         if (bucketOrds == null) {
             collectExistingBucket(sub, doc, globalOrd);
@@ -149,15 +160,20 @@ public class GlobalOrdinalsStringTermsAggregator extends AbstractStringTermsAggr
                 @Override
                 public void collect(int doc, long bucket) throws IOException {
                     assert bucket == 0;
+                    // 从globalOrds里定位当前doc，一个doc可能对应多个globalOrdinal, 因为field可能是一个数组,如果不是则循环就一遍
                     if (globalOrds.advanceExact(doc)) {
                         for (long globalOrd = globalOrds.nextOrd(); globalOrd != NO_MORE_ORDS; globalOrd = globalOrds.nextOrd()) {
+                            // 收集当前doc的term values 对应的数据, term可能是一个数组
                             collectGlobalOrd(doc, globalOrd, sub);
+                            //globalOrdinals.add(globalOrd);
                         }
                     }
                 }
             };
         }
     }
+
+    //private Set<Long> globalOrdinals = new HashSet<>();
 
     protected static void copy(BytesRef from, BytesRef to) {
         if (to.bytes.length < from.length) {
@@ -177,9 +193,9 @@ public class GlobalOrdinalsStringTermsAggregator extends AbstractStringTermsAggr
         final int size;
         if (bucketCountThresholds.getMinDocCount() == 0) {
             // if minDocCount == 0 then we can end up with more buckets then maxBucketOrd() returns
-            size = (int) Math.min(valueCount, bucketCountThresholds.getShardSize());
+            size = (int)Math.min(valueCount, bucketCountThresholds.getShardSize());
         } else {
-            size = (int) Math.min(maxBucketOrd(), bucketCountThresholds.getShardSize());
+            size = (int)Math.min(maxBucketOrd(), bucketCountThresholds.getShardSize());
         }
         long otherDocCount = 0;
         BucketPriorityQueue<OrdBucket> ordered = new BucketPriorityQueue<>(size, order.comparator(this));
@@ -240,14 +256,15 @@ public class GlobalOrdinalsStringTermsAggregator extends AbstractStringTermsAggr
         }
 
         return new StringTerms(name, order, bucketCountThresholds.getRequiredSize(), bucketCountThresholds.getMinDocCount(),
-                pipelineAggregators(), metaData(), format, bucketCountThresholds.getShardSize(), showTermDocCountError,
-                otherDocCount, Arrays.asList(list), 0);
+            pipelineAggregators(), metaData(), format, bucketCountThresholds.getShardSize(), showTermDocCountError,
+            otherDocCount, Arrays.asList(list), 0);
     }
 
     /**
      * This is used internally only, just for compare using global ordinal instead of term bytes in the PQ
      */
     static class OrdBucket extends InternalTerms.Bucket<OrdBucket> {
+
         long globalOrd;
 
         OrdBucket(long globalOrd, long docCount, InternalAggregations aggregations, boolean showDocCountError, long docCountError) {
@@ -297,9 +314,8 @@ public class GlobalOrdinalsStringTermsAggregator extends AbstractStringTermsAggr
     }
 
     /**
-     * Variant of {@link GlobalOrdinalsStringTermsAggregator} that resolves global ordinals post segment collection
-     * instead of on the fly for each match.This is beneficial for low cardinality fields, because it can reduce
-     * the amount of look-ups significantly.
+     * Variant of {@link GlobalOrdinalsStringTermsAggregator} that resolves global ordinals post segment collection instead of on the fly for each match.This is
+     * beneficial for low cardinality fields, because it can reduce the amount of look-ups significantly.
      */
     static class LowCardinality extends GlobalOrdinalsStringTermsAggregator {
 

@@ -1734,8 +1734,10 @@ public class InternalEngine extends Engine {
                 if (hasUncommittedChanges || force || shouldPeriodicallyFlush) {
                     ensureCanFlush();
                     try {
+                        // translog滚动生成新文件
                         translog.rollGeneration();
                         logger.trace("starting commit for flush; commitTranslog=true");
+                        // commit lucene 数据
                         commitIndexWriter(indexWriter, translog, null);
                         logger.trace("finished commit for flush");
 

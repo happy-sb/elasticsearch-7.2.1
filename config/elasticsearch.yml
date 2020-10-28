@@ -20,7 +20,7 @@ cluster.name: elasticsearch
 #
 # Use a descriptive name for the node:
 #
-node.name: node-1
+node.name: JiangJigbo
 #
 # Add custom attributes to the node:
 #
@@ -53,12 +53,17 @@ node.attr.rack: r1
 # Set the bind address to a specific IP (IPv4 or IPv6):
 #
 network.host: 127.0.0.1
+#network.host: 30.8.96.27
 #
 # Set a custom port for HTTP:
 #
 http.port: 9200
 
 node.master: true
+
+  # 可以选举的主节点
+cluster.initial_master_nodes: ["30.8.96.27:9300","30.8.96.96:9300","30.8.96.138:9300"]
+discovery.seed_hosts: ["30.8.96.27:9300","30.8.96.96:9300","30.8.96.138:9300"]
 
 # 是否是当节点集群
 # discovery.type: single-node

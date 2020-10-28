@@ -43,14 +43,15 @@ public abstract class BucketsAggregator extends AggregatorBase {
     private IntArray docCounts;
 
     public BucketsAggregator(String name, AggregatorFactories factories, SearchContext context, Aggregator parent,
-            List<PipelineAggregator> pipelineAggregators, Map<String, Object> metaData) throws IOException {
+                             List<PipelineAggregator> pipelineAggregators, Map<String, Object> metaData) throws IOException {
         super(name, factories, context, parent, pipelineAggregators, metaData);
         bigArrays = context.bigArrays();
         docCounts = bigArrays.newIntArray(1, true);
         if (context.aggregations() != null) {
             multiBucketConsumer = context.aggregations().multiBucketConsumer();
         } else {
-            multiBucketConsumer = (count) -> {};
+            multiBucketConsumer = (count) -> {
+            };
         }
     }
 
@@ -80,6 +81,7 @@ public abstract class BucketsAggregator extends AggregatorBase {
      * Same as {@link #collectBucket(LeafBucketCollector, int, long)}, but doesn't check if the docCounts needs to be re-sized.
      */
     public final void collectExistingBucket(LeafBucketCollector subCollector, int doc, long bucketOrd) throws IOException {
+        // 指定序号的docCount + 1
         docCounts.increment(bucketOrd, 1);
         subCollector.collect(doc, bucketOrd);
     }
@@ -125,8 +127,8 @@ public abstract class BucketsAggregator extends AggregatorBase {
     }
 
     /**
-     * Adds {@code count} buckets to the global count for the request and fails if this number is greater than
-     * the maximum number of buckets allowed in a response
+     * Adds {@code count} buckets to the global count for the request and fails if this number is greater than the maximum number of buckets allowed in a
+     * response
      */
     protected final void consumeBucketsAndMaybeBreak(int count) {
         multiBucketConsumer.accept(count);
