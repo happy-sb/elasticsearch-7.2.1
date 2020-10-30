@@ -2953,11 +2953,13 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     public boolean scheduledRefresh() {
         verifyNotClosed();
         boolean listenerNeedsRefresh = refreshListeners.refreshNeeded();
+        // 综合条件是否要执行当前调度的 refresh             在指定索引上是否有新的变化，有的话 need
         if (isReadAllowed() && (listenerNeedsRefresh || getEngine().refreshNeeded())) {
-            if (listenerNeedsRefresh == false // if we have a listener that is waiting for a refresh we need to force it
-                && isSearchIdle()
-                && indexSettings.isExplicitRefresh() == false
-                && active.get()) { // it must be active otherwise we might not free up segment memory once the shard became inactive
+
+            if (listenerNeedsRefresh == false                       // if we have a listener that is waiting for a refresh we need to force it
+                && isSearchIdle()                                   // 当前 index shard 是否是search idle
+                && indexSettings.isExplicitRefresh() == false       // 没有显式的设置了index.refresh_interval
+                && active.get()) {                                  // it must be active otherwise we might not free up segment memory once the shard became inactive
                 // lets skip this refresh since we are search idle and
                 // don't necessarily need to refresh. the next searcher access will register a refreshListener and that will
                 // cause the next schedule to refresh.
@@ -2978,9 +2980,12 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     }
 
     /**
+     * 判断当前index shard 是否是检索空闲状态
      * Returns true if this shards is search idle
+     * @see IndexSettings#INDEX_SEARCH_IDLE_AFTER
      */
     final boolean isSearchIdle() {
+        // 当前时间 - 最新的search时间 >= 设定的检索空闲时间
         return (threadPool.relativeTimeInMillis() - lastSearcherAccess.get()) >= indexSettings.getSearchIdleAfter().getMillis();
     }
 
@@ -2991,18 +2996,29 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return lastSearcherAccess.get();
     }
 
+    /**
+     * 推迟refresh
+     * @param engine
+     */
     private void setRefreshPending(Engine engine) {
+        // 上次refresh是的transLog location
         Translog.Location lastWriteLocation = engine.getTranslogLastWriteLocation();
         Translog.Location location;
         do {
+            // 先获取上一次refresh 的 location
             location = this.pendingRefreshLocation.get();
             if (location != null && lastWriteLocation.compareTo(location) <= 0) {
                 break;
             }
+            // 更新pending refresh 的 location
         } while (pendingRefreshLocation.compareAndSet(location, lastWriteLocation) == false);
     }
 
     /**
+     * 注册一个listener, 当shard 又接到一个search请求时 触发执行所有的pending refresh , refresh 基于 translog location
+     * 也就是基于translog的指定位置, 后续的index,update,delete 数据都记录在translog的location后, 从此location后开始apply
+     * 此方法主要用作定位transLog 的 location
+     *
      * Registers the given listener and invokes it once the shard is active again and all
      * pending refresh translog location has been refreshed. If there is no pending refresh location registered the listener will be
      * invoked immediately.
@@ -3011,8 +3027,11 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
      */
     public final void awaitShardSearchActive(Consumer<Boolean> listener) {
         markSearcherAccessed(); // move the shard into non-search idle
+        // 获取pending refresh 的 location
         final Translog.Location location = pendingRefreshLocation.get();
+        // 如果存在则说明有必要先refresh 再 search
         if (location != null) {
+            // 添加refresh listener, 当接收到search请求时先触发resresh, 然后执行search
             addRefreshListener(location, (b) -> {
                 pendingRefreshLocation.compareAndSet(location, null);
                 listener.accept(true);

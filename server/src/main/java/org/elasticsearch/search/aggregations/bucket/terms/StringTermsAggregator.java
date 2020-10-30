@@ -48,6 +48,9 @@ import java.util.Map;
 public class StringTermsAggregator extends AbstractStringTermsAggregator {
 
     private final ValuesSource valuesSource;
+    /**
+     * 用hashMap 代替 globalOrdinal
+     */
     protected final BytesRefHash bucketOrds;
     private final IncludeExclude.StringFilter includeExclude;
 
@@ -96,6 +99,7 @@ public class StringTermsAggregator extends AbstractStringTermsAggregator {
                         if (i > 0 && previous.get().equals(bytes)) {
                             continue;
                         }
+                        // 添加term的hashcode 作为map 里的key
                         long bucketOrdinal = bucketOrds.add(bytes);
                         if (bucketOrdinal < 0) { // already seen
                             bucketOrdinal = -1 - bucketOrdinal;

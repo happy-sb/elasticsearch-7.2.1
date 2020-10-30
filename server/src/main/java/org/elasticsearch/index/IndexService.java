@@ -784,6 +784,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         if (indexSettings.getRefreshInterval().millis() > 0 || force) {
             for (IndexShard shard : this.shards.values()) {
                 try {
+                    // 分片定期 refresh
                     shard.scheduledRefresh();
                 } catch (IndexShardClosedException | AlreadyClosedException ex) {
                     // fine - continue;
@@ -870,6 +871,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         BaseAsyncTask(final IndexService indexService, final TimeValue interval) {
             super(indexService.logger, indexService.threadPool, interval, true);
             this.indexService = indexService;
+            // 重新调度当前任务
             rescheduleIfNecessary();
         }
 
@@ -916,11 +918,13 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     final class AsyncRefreshTask extends BaseAsyncTask {
 
         AsyncRefreshTask(IndexService indexService) {
+            // 索引service, refresh间隔
             super(indexService, indexService.getIndexSettings().getRefreshInterval());
         }
 
         @Override
         protected void runInternal() {
+            // 执行 refresh
             indexService.maybeRefreshEngine(false);
         }
 

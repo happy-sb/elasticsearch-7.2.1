@@ -135,7 +135,7 @@ public final class SearchPhaseController {
         return new AggregatedDfs(termStatistics, fieldStatistics, aggMaxDoc);
     }
 
-    /**
+    /** 对所有分片的结果进行排序
      * Returns a score doc array of top N search docs across all shards, followed by top suggest docs for each named completion suggestion across all shards. If
      * more than one named completion suggestion is specified in the request, the suggest docs for a named suggestion are ordered by the suggestion name.
      * <p>
@@ -176,6 +176,7 @@ public final class SearchPhaseController {
         }
         final boolean hasHits = (reducedCompletionSuggestions.isEmpty() && topDocs.isEmpty()) == false;
         if (hasHits) {
+            // merge top N 结果
             final TopDocs mergedTopDocs = mergeTopDocs(topDocs, size, ignoreFrom ? 0 : from);
             final ScoreDoc[] mergedScoreDocs = mergedTopDocs == null ? EMPTY_DOCS : mergedTopDocs.scoreDocs;
             ScoreDoc[] scoreDocs = mergedScoreDocs;
@@ -240,13 +241,18 @@ public final class SearchPhaseController {
             final Sort sort = new Sort(firstTopDocs.fields);
             final CollapseTopFieldDocs[] shardTopDocs = results.toArray(new CollapseTopFieldDocs[numShards]);
             mergedTopDocs = CollapseTopFieldDocs.merge(sort, from, topN, shardTopDocs, setShardIndex);
-        } else if (topDocs instanceof TopFieldDocs) {
+        }
+        // 如果是按field排序的
+        else if (topDocs instanceof TopFieldDocs) {
             TopFieldDocs firstTopDocs = (TopFieldDocs)topDocs;
             final Sort sort = new Sort(firstTopDocs.fields);
             final TopFieldDocs[] shardTopDocs = results.toArray(new TopFieldDocs[numShards]);
             mergedTopDocs = TopDocs.merge(sort, from, topN, shardTopDocs, setShardIndex);
-        } else {
+        }
+        // 按 score 排序的
+        else {
             final TopDocs[] shardTopDocs = results.toArray(new TopDocs[numShards]);
+            // merge 结果
             mergedTopDocs = TopDocs.merge(from, topN, shardTopDocs, setShardIndex);
         }
         return mergedTopDocs;

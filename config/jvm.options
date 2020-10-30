@@ -8,8 +8,8 @@
 ## size to the same value. For example, to set
 ## the heap to 4 GB, set:
 ##
-## -Xms4g
-## -Xmx4g
+-Xms4g
+-Xmx4g
 ##
 ## See https://www.elastic.co/guide/en/elasticsearch/reference/current/heap-size.html
 ## for more information
@@ -18,9 +18,6 @@
 
 # Xms represents the initial size of total heap space
 # Xmx represents the maximum size of total heap space
-
--Xms1g
--Xmx1g
 
 ################################################################
 ## Expert settings

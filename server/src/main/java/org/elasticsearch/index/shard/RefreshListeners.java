@@ -119,6 +119,7 @@ public final class RefreshListeners implements ReferenceManager.RefreshListener,
     }
 
     /**
+     * 为refresh添加一个listener，当refresh完成时, 马上执行listener的逻辑, 比如search idle 后 接受到search请求, 先 refresh 在search
      * Add a listener for refreshes, calling it immediately if the location is already visible. If this runs out of listener slots then it
      * forces a refresh and calls the listener immediately as well.
      *
@@ -131,6 +132,7 @@ public final class RefreshListeners implements ReferenceManager.RefreshListener,
         requireNonNull(listener, "listener cannot be null");
         requireNonNull(location, "location cannot be null");
 
+        // 如果没有记录translog 的refresh location, 或者记录的location 比上次refresh的location还小, 那么不refresh直接执行listener(search)
         if (lastRefreshedLocation != null && lastRefreshedLocation.compareTo(location) >= 0) {
             // Location already visible, just call the listener
             listener.accept(false);

@@ -53,20 +53,25 @@ node.attr.rack: r1
 # Set the bind address to a specific IP (IPv4 or IPv6):
 #
 network.host: 127.0.0.1
-#network.host: 30.8.96.27
 #
 # Set a custom port for HTTP:
 #
-http.port: 9200
+http.port: 9201
+
+transport.tcp.port: 9301
 
 node.master: true
 
-  # 可以选举的主节点
-cluster.initial_master_nodes: ["30.8.96.27:9300","30.8.96.96:9300","30.8.96.138:9300"]
-discovery.seed_hosts: ["30.8.96.27:9300","30.8.96.96:9300","30.8.96.138:9300"]
+http.cors.enabled: true
+http.cors.allow-origin: "*"
+
+# 可以选举的主节点
+cluster.initial_master_nodes: ["127.0.0.1:9301"]
+discovery.seed_hosts: ["127.0.0.1:9301","127.0.0.1:9302","127.0.0.1:9303"]
 
 # 是否是当节点集群
 # discovery.type: single-node
+# discovery.type: zen
 
 #
 # For more information, consult the network module documentation.
@@ -88,7 +93,7 @@ discovery.seed_hosts: ["30.8.96.27:9300","30.8.96.96:9300","30.8.96.138:9300"]
 #
 # Block initial recovery after a full cluster restart until N nodes are started:
 #
-#gateway.recover_after_nodes: 3
+gateway.recover_after_nodes: 2
 #
 # For more information, consult the gateway module documentation.
 #

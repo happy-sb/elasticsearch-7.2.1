@@ -91,6 +91,7 @@ public abstract class AbstractAsyncTask implements Runnable, Closeable {
             if (logger.isTraceEnabled()) {
                 logger.trace("scheduling {} every {}", toString(), interval);
             }
+            // 重新调度当前任务
             cancellable = threadPool.schedule(this, interval, getThreadPool());
             isScheduledOrRunning = true;
         } else {
