@@ -257,6 +257,9 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     private final RefreshListeners refreshListeners;
 
     private final AtomicLong lastSearcherAccess = new AtomicLong();
+    /**
+     * 目前这变量没有特殊作用，仅仅是做一个标识，有值时需要先 force refresh, 再 serach
+     */
     private final AtomicReference<Translog.Location> pendingRefreshLocation = new AtomicReference<>();
 
     public IndexShard(
@@ -2965,6 +2968,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                 // cause the next schedule to refresh.
                 final Engine engine = getEngine();
                 engine.maybePruneDeletes(); // try to prune the deletes in the engine if we accumulated some
+                // 刷新 pendingRefreshLocation, 也就是translog里refresh起始location
                 setRefreshPending(engine);
                 return false;
             } else {
@@ -3029,10 +3033,11 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         markSearcherAccessed(); // move the shard into non-search idle
         // 获取pending refresh 的 location
         final Translog.Location location = pendingRefreshLocation.get();
-        // 如果存在则说明有必要先refresh 再 search
+        // 如果存在则说明有必要先refresh 再 search。一般适用于 search idle 情况
         if (location != null) {
             // 添加refresh listener, 当接收到search请求时先触发resresh, 然后执行search
             addRefreshListener(location, (b) -> {
+                // 将translog refresh location 重置
                 pendingRefreshLocation.compareAndSet(location, null);
                 listener.accept(true);
             });
