@@ -175,6 +175,7 @@ final class DefaultSearchContext extends SearchContext {
         this.indexShard = indexShard;
         this.indexService = indexService;
         this.clusterService = clusterService;
+        // 在构建IndexSearcher时使用了QueryCache
         this.searcher = new ContextIndexSearcher(engineSearcher, indexService.cache().query(), indexShard.getQueryCachingPolicy());
         this.relativeTimeSupplier = relativeTimeSupplier;
         this.timeout = timeout;

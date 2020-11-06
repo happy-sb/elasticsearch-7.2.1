@@ -168,6 +168,7 @@ public class QueryPhase implements SearchPhase {
                         }
                         // ... and stop collecting after ${size} matches
                         searchContext.terminateAfter(searchContext.size());
+                    // 是否能夠提早结束，比如index sorting
                     } else if (canEarlyTerminate(reader, searchContext.sort())) {
                         // now this gets interesting: since the search sort is a prefix of the index sort, we can directly
                         // skip to the desired doc
@@ -192,7 +193,7 @@ public class QueryPhase implements SearchPhase {
                 // this collector can filter documents during the collection
                 hasFilterCollector = true;
             }
-            // Post_Filter 起作用的地方
+            // Post_Filter 起作用的地方, 不对query结果做裁剪, 但后续有agg时会对其结果做裁剪后聚合
             if (searchContext.parsedPostFilter() != null) {
                 // add post filters before aggregations  在 aggregations 之前添加Filter
                 // it will only be applied to top hits  他们仅仅会作用在TopN 命中的doc
