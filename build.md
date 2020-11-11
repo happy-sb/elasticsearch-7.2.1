@@ -7,9 +7,9 @@
 * jvm setting
 
 ```
--Des.path.conf=D:\github\java\elasticsearch-7.2.1\config
--Djava.security.policy=D:\github\java\elasticsearch-7.2.1\config\java.policy
--Des.path.home=D:\github\java\elasticsearch-7.2.1\data
+-Des.path.conf=./config
+-Djava.security.policy=./config\java.policy
+-Des.path.home=./data
 -Dlog4j2.disable.jmx=true
 ```
 
